@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vibe Launcher</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Phosphor Icons for UI -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="bg-effects">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <main class="container">
+        <header class="app-header">
+            <div class="logo-area">
+                <i class="ph-fill ph-rocket-launch"></i>
+                <h1>Vibe Launcher</h1>
+            </div>
+            <div class="header-actions">
+                <div class="search-box">
+                    <i class="ph-bold ph-magnifying-glass"></i>
+                    <input type="text" id="searchInput" placeholder="Search projects...">
+                </div>
+                <button id="addProjectBtn" class="btn primary-btn">
+                    <i class="ph-bold ph-plus"></i> New Project
+                </button>
+            </div>
+        </header>
+
+        <div id="projectsGrid" class="projects-grid">
+            <!-- Projects injected via JS -->
+            <div class="loading">Loading your vibe code...</div>
+        </div>
+    </main>
+
+    <!-- Modal for adding/editing project -->
+    <div id="addModal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modalTitle">Add New Project</h2>
+                <button id="closeModalBtn" class="icon-btn"><i class="ph-bold ph-x"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="projectForm">
+                    <input type="hidden" id="editProjectId" value="">
+                    <div class="form-group">
+                        <label>Project Name</label>
+                        <input type="text" id="pName" required placeholder="e.g. Magic App">
+                    </div>
+                    <div class="form-group">
+                        <label>Location (Absolute path)</label>
+                        <input type="text" id="pPath" required placeholder="C:\Users\username\Projects\MagicApp">
+                    </div>
+                    <div class="form-group">
+                        <label>Logo URL (Optional)</label>
+                        <input type="url" id="pLogo" placeholder="https://example.com/logo.png">
+                    </div>
+                    <div class="form-group">
+                        <label>IDE Command</label>
+                        <input type="text" id="pIde" required placeholder="code, cursor, or antigravity">
+                    </div>
+
+                    <div class="commands-section">
+                        <div class="commands-header">
+                            <h3>Execution Commands</h3>
+                            <button type="button" id="addCmdBtn" class="text-btn"><i class="ph-bold ph-plus"></i> Add
+                                Command</button>
+                        </div>
+                        <div id="commandsList">
+                            <!-- Commands added here -->
+                        </div>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" id="cancelModalBtn" class="btn secondary-btn">Cancel</button>
+                        <button type="submit" class="btn primary-btn">Save Project</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
