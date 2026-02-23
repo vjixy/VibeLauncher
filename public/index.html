@@ -21,28 +21,42 @@
         <div class="blob blob-3"></div>
     </div>
 
-    <main class="container">
-        <header class="app-header">
-            <div class="logo-area">
-                <i class="ph-fill ph-rocket-launch"></i>
-                <h1>Vibe Launcher</h1>
+    <div class="layout-wrapper">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Categories</h2>
             </div>
-            <div class="header-actions">
-                <div class="search-box">
-                    <i class="ph-bold ph-magnifying-glass"></i>
-                    <input type="text" id="searchInput" placeholder="Search projects...">
-                </div>
-                <button id="addProjectBtn" class="btn primary-btn">
-                    <i class="ph-bold ph-plus"></i> New Project
-                </button>
-            </div>
-        </header>
+            <ul id="categoryList" class="category-list">
+                <li class="category-item active" onclick="filterByCategory('All')">
+                    <i class="ph-bold ph-squares-four"></i> All Projects
+                </li>
+                <!-- injected via JS -->
+            </ul>
+        </aside>
 
-        <div id="projectsGrid" class="projects-grid">
-            <!-- Projects injected via JS -->
-            <div class="loading">Loading your vibe code...</div>
-        </div>
-    </main>
+        <main class="container">
+            <header class="app-header">
+                <div class="logo-area">
+                    <i class="ph-fill ph-rocket-launch"></i>
+                    <h1>Vibe Launcher</h1>
+                </div>
+                <div class="header-actions">
+                    <div class="search-box">
+                        <i class="ph-bold ph-magnifying-glass"></i>
+                        <input type="text" id="searchInput" placeholder="Search projects...">
+                    </div>
+                    <button id="addProjectBtn" class="btn primary-btn">
+                        <i class="ph-bold ph-plus"></i> New Project
+                    </button>
+                </div>
+            </header>
+
+            <div id="projectsGrid" class="projects-grid">
+                <!-- Projects injected via JS -->
+                <div class="loading">Loading your vibe code...</div>
+            </div>
+        </main>
+    </div>
 
     <!-- Modal for adding/editing project -->
     <div id="addModal" class="modal-overlay hidden">
@@ -54,31 +68,48 @@
             <div class="modal-body">
                 <form id="projectForm">
                     <input type="hidden" id="editProjectId" value="">
-                    <div class="form-group">
-                        <label>Project Name</label>
-                        <input type="text" id="pName" required placeholder="e.g. Magic App">
-                    </div>
-                    <div class="form-group">
-                        <label>Location (Absolute path)</label>
-                        <input type="text" id="pPath" required placeholder="C:\Users\username\Projects\MagicApp">
-                    </div>
-                    <div class="form-group">
-                        <label>Logo URL (Optional)</label>
-                        <input type="url" id="pLogo" placeholder="https://example.com/logo.png">
-                    </div>
-                    <div class="form-group">
-                        <label>IDE Command</label>
-                        <input type="text" id="pIde" required placeholder="code, cursor, or antigravity">
-                    </div>
 
-                    <div class="commands-section">
-                        <div class="commands-header">
-                            <h3>Execution Commands</h3>
-                            <button type="button" id="addCmdBtn" class="text-btn"><i class="ph-bold ph-plus"></i> Add
-                                Command</button>
+                    <div class="form-columns">
+                        <!-- Left Column: Details -->
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label>Project Name</label>
+                                <input type="text" id="pName" required placeholder="e.g. Magic App">
+                            </div>
+                            <div class="form-group">
+                                <label>Category (Optional)</label>
+                                <input type="text" id="pCategory" list="categoryOptions"
+                                    placeholder="e.g. Work, Personal">
+                                <datalist id="categoryOptions">
+                                    <!-- Injected via JS -->
+                                </datalist>
+                            </div>
+                            <div class="form-group">
+                                <label>Location (Absolute path)</label>
+                                <input type="text" id="pPath" required
+                                    placeholder="C:\Users\username\Projects\MagicApp">
+                            </div>
+                            <div class="form-group">
+                                <label>Logo URL (Optional)</label>
+                                <input type="url" id="pLogo" placeholder="https://example.com/logo.png">
+                            </div>
+                            <div class="form-group">
+                                <label>IDE Command</label>
+                                <input type="text" id="pIde" required placeholder="code, cursor, or antigravity">
+                            </div>
                         </div>
-                        <div id="commandsList">
-                            <!-- Commands added here -->
+
+                        <!-- Right Column: Commands -->
+                        <div class="form-col commands-col">
+                            <div class="commands-header">
+                                <h3>Execution Commands</h3>
+                                <button type="button" id="addCmdBtn" class="text-btn"><i class="ph-bold ph-plus"></i>
+                                    Add
+                                    Command</button>
+                            </div>
+                            <div id="commandsList" class="commands-scrollable">
+                                <!-- Commands added here -->
+                            </div>
                         </div>
                     </div>
 

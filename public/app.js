@@ -9,9 +9,11 @@ const cancelModalBtn = document.getElementById('cancelModalBtn');
 const projectForm = document.getElementById('projectForm');
 const commandsList = document.getElementById('commandsList');
 const addCmdBtn = document.getElementById('addCmdBtn');
+const categoryList = document.getElementById('categoryList');
 
 // State
 let projects = [];
+let activeCategory = 'All';
 
 // Search Input
 const searchInput = document.getElementById('searchInput');
@@ -22,6 +24,7 @@ async function fetchProjects() {
     try {
         const res = await fetch(API_BASE);
         projects = await res.json();
+        renderCategories();
         renderProjects();
     } catch (e) {
         console.error('Failed to load projects:', e);
@@ -29,8 +32,55 @@ async function fetchProjects() {
     }
 }
 
+function renderCategories() {
+    const categories = new Set();
+    projects.forEach(p => {
+        if (p.category && p.category.trim() !== '') {
+            categories.add(p.category.trim());
+        }
+    });
+
+    const sortedCategories = Array.from(categories).sort();
+
+    let html = `
+        <li class="category-item ${activeCategory === 'All' ? 'active' : ''}" onclick="filterByCategory('All')">
+            <i class="ph-bold ph-squares-four"></i> All Projects
+        </li>
+    `;
+    let datalistHtml = '';
+
+    sortedCategories.forEach(cat => {
+        const safeCat = cat.replace(/'/g, "\\'");
+        html += `
+            <li class="category-item ${activeCategory === cat ? 'active' : ''}" onclick="filterByCategory('${safeCat}')">
+                <i class="ph-bold ph-folder"></i> ${cat}
+            </li>
+        `;
+        datalistHtml += `<option value="${cat}"></option>`;
+    });
+
+    categoryList.innerHTML = html;
+
+    // Update datalist for autocompletion
+    const dataListElement = document.getElementById('categoryOptions');
+    if (dataListElement) {
+        dataListElement.innerHTML = datalistHtml;
+    }
+}
+
+window.filterByCategory = function (category) {
+    activeCategory = category;
+    renderCategories();
+    renderProjects();
+}
+
 function renderProjects() {
     let filteredProjects = projects;
+
+    if (activeCategory !== 'All') {
+        filteredProjects = filteredProjects.filter(p => p.category === activeCategory);
+    }
+
     if (searchQuery) {
         const q = searchQuery.toLowerCase();
         filteredProjects = projects.filter(p =>
@@ -75,7 +125,7 @@ function renderProjects() {
         const actionHtml = `
             <div class="actions-area">
                 <button class="btn cmd-btn ide-btn" onclick="openIDE('${p.id}')">
-                    <i class="ph-bold ph-terminal-window"></i> Open ${p.ide || 'IDE'}
+                    <i class="ph-bold ph-terminal-window"></i> Open in ${p.ide || 'IDE'}
                 </button>
                 ${cmdButtons}
             </div>
@@ -151,6 +201,7 @@ function editProject(id) {
     document.getElementById('pName').value = project.name || '';
     document.getElementById('pPath').value = project.path || '';
     document.getElementById('pLogo').value = project.logo || '';
+    document.getElementById('pCategory').value = project.category || '';
     document.getElementById('pIde').value = project.ide || 'code';
 
     commandsList.innerHTML = '';
@@ -231,6 +282,7 @@ projectForm.addEventListener('submit', async (e) => {
         name: document.getElementById('pName').value,
         path: document.getElementById('pPath').value,
         logo: document.getElementById('pLogo').value,
+        category: document.getElementById('pCategory').value,
         ide: document.getElementById('pIde').value,
         commands
     };

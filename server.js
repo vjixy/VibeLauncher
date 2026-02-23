@@ -48,6 +48,7 @@ app.post('/api/projects', (req, res) => {
         name: req.body.name || 'Unnamed Project',
         path: req.body.path || '',
         logo: req.body.logo || '',
+        category: req.body.category || '',
         ide: req.body.ide || 'code',
         commands: req.body.commands || []
     };
@@ -78,6 +79,7 @@ app.put('/api/projects/:id', (req, res) => {
         path: req.body.path || projects[index].path,
         logo: req.body.logo || projects[index].logo,
         ide: req.body.ide || projects[index].ide,
+        category: req.body.category !== undefined ? req.body.category : (projects[index].category || ''),
         commands: req.body.commands || projects[index].commands
     };
 
