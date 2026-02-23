@@ -25,20 +25,42 @@ You only need **Node.js** installed on your system.
 
 ### Installation
 
+#### Option 1: Global CLI (Recommended)
+
+To install Vibe Launcher globally so you can start it from any terminal window simply by typing `vibel`:
+
 1. Clone or download this repository.
 2. Navigate to the project folder:
    ```bash
    cd "path/to/VibeLauncher"
    ```
-3. Install dependencies:
+3. Install dependencies and the global package simultaneously:
+   ```bash
+   npm install -g .
+   ```
+   Or install it directly from NPM registry:
+   ```bash
+   npm install -g @vjixy/vibel
+   ```
+
+#### Option 2: Local Development
+
+If you prefer to run it locally without installing it globally:
+
+1. Clone or download this repository.
+2. Navigate to the project folder and install dependencies:
    ```bash
    npm install
    ```
 
 ### Running the App
 
-Start the launcher from your terminal:
+If you installed it globally via Option 1, open any terminal and just type:
+```bash
+vibel
+```
 
+If you installed it locally via Option 2, start the launcher from your project terminal:
 ```bash
 npm start
 ```

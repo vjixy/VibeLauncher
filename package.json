@@ -1,8 +1,11 @@
 {
-  "name": "vibelauncher",
+  "name": "@vjixy/vibel",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Vibe Launcher CLI project manager",
+  "main": "server.js",
+  "bin": {
+    "vibel": "./server.js"
+  },
   "scripts": {
     "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"

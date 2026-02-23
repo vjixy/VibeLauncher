@@ -1,16 +1,21 @@
+#!/usr/bin/env node
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
 
+// For global install, we want to store projects in a reliable place
+// like the user's home directory so it's persisted across updates
+const os = require('os');
+const DATA_FILE = path.join(os.homedir(), 'vibelancher_projects.json');
+
 const app = express();
 const PORT = 3000;
-const DATA_FILE = path.join(__dirname, 'projects.json');
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Helper to read data
 function readData() {
