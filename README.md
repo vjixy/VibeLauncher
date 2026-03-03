@@ -1,97 +1,144 @@
-# 🚀 Vibe Launcher
+<div align="center">
 
-Vibe Launcher is a lightweight, modern project manager tailored specifically for keeping track of your "vibe coded" projects. Designed with a sleek, premium glassmorphic interface, it allows you to centralize your workflow without getting bogged down by heavy configurations.
+<img src="images/home_page.png" alt="Vibe Launcher — screenshot" width="100%">
 
-## 🌟 Features
+<br/>
+<br/>
 
-- **Clean Architecture:** Built on Node.js and Express, utilizing a simple local JSON file (`projects.json`) for persistence. No database installation or complex setups required!
-- **Beautiful UI:** A dynamic, visually striking single-page application (SPA) featuring glassmorphism, fluid animations, and modern typography.
-- **Project Tracking:** Easily add projects with their absolute file paths and optional logos.
-- **Multiple Execution Commands:** Define custom runtime scripts for each project (e.g., frontend server, backend server, tests) that run cleanly in their own visible Command Prompt windows.
-- **Integrated IDE Launcher:** Open your projects instantly in your editor of choice (e.g., `code`, `cursor`, `antigravity`).
+# Vibe Launcher
 
-## 🛠️ Tech Stack
+**A lightweight local launcher for all your vibe-coded apps.**  
+Centralize every project, run commands, and open your IDE — all from one clean UI.
 
-- **Backend:** Node.js, Express.js
-- **Frontend:** Vanilla HTML, CSS, JavaScript (Zero Build Steps!)
-- **Database:** Local JSON File (`projects.json` - ignored from version control)
-- **Styling:** Custom CSS with [Phosphor Icons](https://phosphoricons.com/) and [Google Fonts](https://fonts.google.com/).
+<br/>
 
-## 🚀 Getting Started
+[![npm version](https://img.shields.io/npm/v/@vjixy/vibel?color=5b5fef&labelColor=111&style=flat-square)](https://www.npmjs.com/package/@vjixy/vibel)
+[![npm downloads](https://img.shields.io/npm/dm/@vjixy/vibel?color=5b5fef&labelColor=111&style=flat-square)](https://www.npmjs.com/package/@vjixy/vibel)
+[![license](https://img.shields.io/npm/l/@vjixy/vibel?color=5b5fef&labelColor=111&style=flat-square)](LICENSE)
+[![node](https://img.shields.io/badge/requires-Node.js-5b5fef?labelColor=111&style=flat-square)](https://nodejs.org)
 
-### Prerequisites
+<br/>
 
-You only need **Node.js** installed on your system.
+</div>
 
-### Installation
+---
 
-#### Option 1: Global CLI (Recommended)
+## What is Vibe Launcher?
 
-To install Vibe Launcher globally so you can start it from any terminal window simply by typing `vibel`:
+If you vibe-code a lot, you end up with dozens of projects scattered across your machine. Vibe Launcher gives every project a permanent home — a local web dashboard where you can launch servers, open editors, and organize everything by category without touching the terminal.
 
-1. Clone or download this repository.
-2. Navigate to the project folder:
-   ```bash
-   cd "path/to/VibeLauncher"
-   ```
-3. Install dependencies and the global package simultaneously:
-   ```bash
-   npm install -g .
-   ```
-   Or install it directly from NPM registry:
-   ```bash
-   npm install -g @vjixy/vibel
-   ```
+No cloud. No account. Just a single `vibel` command.
 
-#### Option 2: Local Development
+---
 
-If you prefer to run it locally without installing it globally:
+## Features
 
-1. Clone or download this repository.
-2. Navigate to the project folder and install dependencies:
-   ```bash
-   npm install
-   ```
+| | |
+|---|---|
+| 🗂️ **Category workspaces** | Group projects into custom categories. Create and delete them from the sidebar. |
+| ▶️ **One-click run** | Define multiple named commands per project. Each runs in its own terminal window. |
+| 🛑 **Stop running processes** | Kill any running command directly from the UI. |
+| 🖥️ **IDE launcher** | Open any project in VS Code, Cursor, Windsurf, or any CLI editor. |
+| 📌 **Pin favorites** | Pin important projects to always float to the top of the grid. |
+| 🌗 **Light & dark mode** | Toggle themes. Preference saved across sessions. |
+| 🖱️ **Drag to reorder** | Rearrange the project grid by dragging cards. Order is persisted. |
+| 📝 **Project notes** | Add free-text notes to any project, shown as a preview on the card. |
+| 🔍 **Live search** | Instantly filter across project names, paths, categories, and notes. |
 
-### Running the App
+---
 
-If you installed it globally via Option 1, open any terminal and just type:
+## Installation
+
+### Global install (recommended)
+
+Install once, run from anywhere:
+
+```bash
+npm install -g @vjixy/vibel
+```
+
+Then start it:
+
 ```bash
 vibel
 ```
 
-If you installed it locally via Option 2, start the launcher from your project terminal:
+Open **[http://localhost:3000](http://localhost:3000)** in your browser.
+
+---
+
+### Local / development
+
 ```bash
+git clone https://github.com/vjixy/VibeLauncher.git
+cd VibeLauncher
+npm install
 npm start
 ```
 
-The application will launch on your local server. Open your browser and go to:
-**http://localhost:3000**
+---
 
-## 📂 Project Structure
+## Usage
+
+1. Click **New Project** in the top-right corner.
+2. Fill in the **project name**, **absolute path**, and **IDE command** (`code`, `cursor`, `windsurf`, …).
+3. Add one or more **run commands** — give each a short label (e.g. `frontend`, `backend`).
+4. Assign one or more **categories** from the searchable dropdown, or create a new one inline.
+5. **Save** — your project card appears in the grid.
+
+From the card you can:
+- **▶ Run** any command — opens a new terminal window in the project directory.
+- **■ Stop** a running command.
+- **Open in IDE** — one click.
+- **Pin** the project to keep it at the top.
+- **Drag** to reorder.
+- **Edit / Delete** via the hover action buttons.
+
+To create a new category without adding a project first, click the **+** button next to *Workspaces* in the sidebar.
+
+---
+
+## Project structure
 
 ```
 VibeLauncher/
-├── public/                 # Frontend assets
-│   ├── index.html          # Main interface
-│   ├── style.css           # Glassmorphic and animations styles
-│   └── app.js              # Client-side logic and API calls
-├── server.js               # Express API and command execution logic
-├── projects.json           # Local database (auto-generated on first run)
-├── package.json            # Node.js dependencies and scripts
-└── README.md               # Project documentation
+├── public/
+│   ├── index.html      # Single-page UI
+│   ├── style.css       # Design system & component styles
+│   └── app.js          # Client logic, multi-select, drag & drop
+├── server.js           # Express API + command execution
+├── projects.json       # Local database (auto-created, gitignored)
+├── package.json
+└── README.md
 ```
 
-## 🪄 How to Use
-
-1. Click **"New Project"** in the top right.
-2. Enter the **Project Name** and the **Absolute Path** to the project on your machine.
-3. Configure your **IDE Command** (e.g., `code` for VS Code, `antigravity`, or `cursor`).
-4. Add as many **Execution Commands** as you need. For example:
-   - Name: `Backend`, Command: `npm run server`
-   - Name: `Frontend`, Command: `npm start`
-5. Save the project!
-6. Use the intuitive buttons on your project cards to pop open your IDE or trigger processes in new visible terminal windows.
+Data is stored locally in `projects.json` alongside `server.js`. No database, no cloud, no telemetry.
 
 ---
-*Built with ❤️ for rapid, beautiful vibe coding.*
+
+## Tech stack
+
+- **Runtime** — Node.js
+- **Server** — Express
+- **Frontend** — Vanilla HTML + CSS + JavaScript (zero build step)
+- **Icons** — [Phosphor Icons](https://phosphoricons.com/)
+- **Fonts** — [Inter](https://fonts.google.com/specimen/Inter) via Google Fonts
+
+---
+
+## Requirements
+
+- **Node.js** v16 or later
+- **Windows** (command execution uses `cmd.exe` — macOS/Linux support planned)
+
+---
+
+## License
+
+[ISC](LICENSE)
+
+---
+
+<div align="center">
+  Built for fast, creative development workflows.
+</div>

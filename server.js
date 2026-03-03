@@ -3,10 +3,10 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
-const os = require('os');
 const { exec } = require('child_process');
 
-const DATA_FILE = path.join(os.homedir(), 'vibelancher_projects.json');
+// Store data next to server.js so it's always in the project folder
+const DATA_FILE = path.join(__dirname, 'projects.json');
 const app = express();
 const PORT = 3000;
 
