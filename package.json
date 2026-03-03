@@ -1,6 +1,6 @@
 {
   "name": "@vjixy/vibel",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Vibe Launcher CLI project manager",
   "main": "server.js",
   "bin": {
