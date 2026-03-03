@@ -40,6 +40,17 @@ app.get('/api/projects', (req, res) => {
     res.json(readData());
 });
 
+// Reorder projects (must be before /:id routes)
+app.post('/api/projects/reorder', (req, res) => {
+    const { ids } = req.body;
+    if (!Array.isArray(ids)) return res.status(400).json({ error: 'ids must be an array' });
+    let projects = readData();
+    const reordered = ids.map(id => projects.find(p => p.id === id)).filter(Boolean);
+    const missing = projects.filter(p => !ids.includes(p.id));
+    writeData([...reordered, ...missing]);
+    res.json({ success: true });
+});
+
 // Add a new project
 app.post('/api/projects', (req, res) => {
     const projects = readData();
@@ -50,7 +61,9 @@ app.post('/api/projects', (req, res) => {
         logo: req.body.logo || '',
         category: req.body.category || '',
         ide: req.body.ide || 'code',
-        commands: req.body.commands || []
+        commands: req.body.commands || [],
+        notes: req.body.notes || '',
+        pinned: req.body.pinned || false
     };
     projects.push(newProject);
     writeData(projects);
@@ -74,13 +87,15 @@ app.put('/api/projects/:id', (req, res) => {
     }
 
     projects[index] = {
-        id: req.params.id, // Preserve ID
+        id: req.params.id,
         name: req.body.name || projects[index].name,
         path: req.body.path || projects[index].path,
-        logo: req.body.logo || projects[index].logo,
+        logo: req.body.logo !== undefined ? req.body.logo : (projects[index].logo || ''),
         ide: req.body.ide || projects[index].ide,
         category: req.body.category !== undefined ? req.body.category : (projects[index].category || ''),
-        commands: req.body.commands || projects[index].commands
+        commands: req.body.commands || projects[index].commands,
+        notes: req.body.notes !== undefined ? req.body.notes : (projects[index].notes || ''),
+        pinned: req.body.pinned !== undefined ? req.body.pinned : (projects[index].pinned || false)
     };
 
     writeData(projects);
@@ -102,15 +117,49 @@ app.post('/api/projects/:id/execute', (req, res) => {
     }
 
     // Launch in a new command prompt window on Windows
-    // /k keeps the window open
-    const fullCmd = `start "" cmd.exe /k "cd /d "${project.path}" && ${cmdObj.cmd}"`;
+    // Inject a unique signature so we can robustly trace and kill the entire tree later
+    const uniqueId = `VibeID:${project.id}-${commandIndex}`;
+    const fullCmd = `start "" cmd.exe /k "echo ${uniqueId} > nul && cd /d "${project.path}" && ${cmdObj.cmd}"`;
+
     exec(fullCmd, (error) => {
         if (error) {
             console.error('Execution error:', error);
-            return res.status(500).json({ error: error.message });
         }
     });
+
     res.json({ success: true, message: `Executed ${cmdObj.name}` });
+});
+
+// Stop a project command
+app.post('/api/projects/:id/stop', (req, res) => {
+    const { commandIndex, commandName } = req.body;
+    const uniqueId = `VibeID:${req.params.id}-${commandIndex}`;
+
+    // Find cmd.exe process(es) that contain our unique signature
+    const psCmd = `powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \\"Name='cmd.exe' and CommandLine LIKE '%${uniqueId}%'\\" | Select-Object -ExpandProperty ProcessId"`;
+
+    exec(psCmd, (err, stdout) => {
+        if (err || !stdout.trim()) {
+            return res.json({ success: false, error: 'Process not found or already stopped.' });
+        }
+
+        const pids = stdout.trim().split('\n').map(pid => pid.trim()).filter(pid => pid);
+
+        if (pids.length === 0) {
+            return res.json({ success: false, error: 'Process not found.' });
+        }
+
+        // Terminate process tree forcefully for each matched process
+        pids.forEach(pid => {
+            exec(`taskkill /PID ${pid} /T /F`, (killErr) => {
+                if (killErr) {
+                    console.log(`Could not kill process ${pid}`, killErr);
+                }
+            });
+        });
+
+        res.json({ success: true, message: `Stopped ${commandName || 'command'}` });
+    });
 });
 
 // Open IDE
