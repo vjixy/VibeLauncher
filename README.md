@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="images/home_page.png" alt="Vibe Launcher — screenshot" width="100%">
+<img src="https://raw.githubusercontent.com/vjixy/VibeLauncher/main/images/home_page.png" alt="Vibe Launcher — screenshot" width="100%">
 
 <br/>
 <br/>
