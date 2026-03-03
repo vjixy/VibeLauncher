@@ -1,6 +1,7 @@
 const API_BASE = '/api/projects';
+const CAT_BASE = '/api/categories';
 
-// ─── DOM ───────────────────────────────────────
+// ─── DOM ────────────────────────────────────────────────
 const projectsGrid = document.getElementById('projectsGrid');
 const addModal = document.getElementById('addModal');
 const addProjectBtn = document.getElementById('addProjectBtn');
@@ -12,217 +13,349 @@ const addCmdBtn = document.getElementById('addCmdBtn');
 const categoryList = document.getElementById('categoryList');
 const searchInput = document.getElementById('searchInput');
 const headerTitle = document.getElementById('headerTitle');
-const headerSub = document.getElementById('headerSub');
 const themeToggleBtn = document.getElementById('themeToggleBtn');
 const themeIcon = document.getElementById('themeIcon');
 
-// ─── State ─────────────────────────────────────
+// ─── State ──────────────────────────────────────────────
 let projects = [];
+let categories = [];   // global list of all categories
 let activeCategory = 'All';
 let searchQuery = '';
-let dragSrcId = null;   // current card being dragged
-const runningCommands = {};  // { "projectId_cmdIndex": true }
+let dragSrcId = null;
+const runningCommands = {};
 
-// ═══════════════════════════════════════════════
-//  THEME TOGGLE
-// ═══════════════════════════════════════════════
-function applyTheme(theme) {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('vibe-theme', theme);
-    themeIcon.className = theme === 'dark' ? 'ph-bold ph-sun' : 'ph-bold ph-moon';
-    themeToggleBtn.title = theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
+// ═══════════════════════════════════════════════════════
+//  AVATAR HELPERS
+// ═══════════════════════════════════════════════════════
+const AV = [
+    { bg: 'rgba(91,95,239,0.15)', fg: '#818cf8' },
+    { bg: 'rgba(139,92,246,0.15)', fg: '#a78bfa' },
+    { bg: 'rgba(236,72,153,0.15)', fg: '#f472b6' },
+    { bg: 'rgba(245,158,11,0.15)', fg: '#fbbf24' },
+    { bg: 'rgba(34,197,94,0.15)', fg: '#4ade80' },
+    { bg: 'rgba(59,130,246,0.15)', fg: '#60a5fa' },
+    { bg: 'rgba(239,68,68,0.15)', fg: '#f87171' },
+    { bg: 'rgba(6,182,212,0.15)', fg: '#22d3ee' },
+    { bg: 'rgba(249,115,22,0.15)', fg: '#fb923c' },
+    { bg: 'rgba(20,184,166,0.15)', fg: '#2dd4bf' },
+];
+const CAT_COLORS = ['#818cf8', '#a78bfa', '#f472b6', '#fbbf24', '#4ade80', '#60a5fa', '#f87171', '#22d3ee', '#fb923c', '#2dd4bf'];
+
+function hashStr(s) { let h = 0; for (let i = 0; i < s.length; i++) h = s.charCodeAt(i) + ((h << 5) - h); return Math.abs(h); }
+function getAV(name) { return AV[hashStr(name) % AV.length]; }
+function getCatColor(c) { return CAT_COLORS[hashStr(c) % CAT_COLORS.length]; }
+function getInitials(n) {
+    const w = n.trim().split(/\s+/);
+    return w.length >= 2 ? (w[0][0] + w[1][0]).toUpperCase() : n.slice(0, 2).toUpperCase() || '?';
 }
 
-(function initTheme() {
-    const saved = localStorage.getItem('vibe-theme') || 'dark';
-    applyTheme(saved);
-})();
+// ═══════════════════════════════════════════════════════
+//  THEME
+// ═══════════════════════════════════════════════════════
+function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    localStorage.setItem('vibe-theme', t);
+    themeIcon.className = t === 'dark' ? 'ph-bold ph-sun' : 'ph-bold ph-moon';
+}
+applyTheme(localStorage.getItem('vibe-theme') || 'dark');
+themeToggleBtn.addEventListener('click', () =>
+    applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
 
-themeToggleBtn.addEventListener('click', () => {
-    const current = document.documentElement.getAttribute('data-theme');
-    applyTheme(current === 'dark' ? 'light' : 'dark');
-});
-
-// ═══════════════════════════════════════════════
-//  TOAST NOTIFICATIONS
-// ═══════════════════════════════════════════════
-function showToast(message, type = 'info', duration = 3000) {
-    const container = document.getElementById('toast-container');
-    const iconMap = {
-        success: 'ph-bold ph-check-circle',
-        error: 'ph-bold ph-warning-circle',
-        info: 'ph-bold ph-info',
-    };
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.innerHTML = `<i class="${iconMap[type] || iconMap.info}"></i><span>${message}</span>`;
-    container.appendChild(toast);
-    setTimeout(() => {
-        toast.classList.add('fade-out');
-        setTimeout(() => toast.remove(), 300);
-    }, duration);
+// ═══════════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════════
+function showToast(msg, type = 'info', ms = 3000) {
+    const c = document.getElementById('toast-container');
+    const icons = { success: 'ph-bold ph-check-circle', error: 'ph-bold ph-warning-circle', info: 'ph-bold ph-info' };
+    const el = document.createElement('div');
+    el.className = `toast ${type}`;
+    el.innerHTML = `<i class="${icons[type]}"></i><span>${msg}</span>`;
+    c.appendChild(el);
+    setTimeout(() => { el.classList.add('fade-out'); setTimeout(() => el.remove(), 300); }, ms);
 }
 
-// ═══════════════════════════════════════════════
-//  DATA FETCHING
-// ═══════════════════════════════════════════════
-async function fetchProjects() {
+// ═══════════════════════════════════════════════════════
+//  FETCH
+// ═══════════════════════════════════════════════════════
+async function fetchAll() {
     try {
-        const res = await fetch(API_BASE);
-        projects = await res.json();
-        renderCategories();
+        [categories, projects] = await Promise.all([
+            fetch(CAT_BASE).then(r => r.json()),
+            fetch(API_BASE).then(r => r.json()),
+        ]);
+        // Merge any categories found in projects that aren't in the stored list
+        projects.forEach(p => {
+            (p.categories || []).forEach(c => { if (!categories.includes(c)) categories.push(c); });
+        });
+        categories.sort();
+        msSetCategories(categories);
+        renderCategorySidebar();
         renderProjects();
     } catch (e) {
-        console.error('Failed to load projects:', e);
-        projectsGrid.innerHTML = `
-            <div class="empty-state">
-                <i class="ph-bold ph-warning-circle"></i>
-                <h2>Could not load projects</h2>
-                <p>Make sure the server is running, then refresh.</p>
-            </div>`;
+        console.error(e);
+        projectsGrid.innerHTML = `<div class="empty-state">
+            <i class="ph-bold ph-warning-circle"></i>
+            <h2>Could not connect</h2><p>Make sure the server is running.</p></div>`;
     }
 }
 
-// ═══════════════════════════════════════════════
-//  RENDER CATEGORIES (sidebar)
-// ═══════════════════════════════════════════════
-function renderCategories() {
-    const countMap = {};
+// ═══════════════════════════════════════════════════════
+//  SIDEBAR — CATEGORIES
+// ═══════════════════════════════════════════════════════
+function renderCategorySidebar() {
+    const counts = {};
     projects.forEach(p => {
-        const cat = (p.category || '').trim();
-        if (cat) countMap[cat] = (countMap[cat] || 0) + 1;
+        (p.categories || []).forEach(c => { counts[c] = (counts[c] || 0) + 1; });
     });
 
-    let html = `
-        <li class="category-item ${activeCategory === 'All' ? 'active' : ''}"
-            onclick="filterByCategory('All')">
-            <i class="ph-bold ph-squares-four"></i>
-            All Projects
-            <span class="cat-count">${projects.length}</span>
+    let html = `<li class="category-item ${activeCategory === 'All' ? 'active' : ''}" onclick="filterByCategory('All')">
+        <i class="ph-bold ph-squares-four"></i> All Projects
+        <span class="cat-count">${projects.length}</span></li>`;
+
+    // All unique categories = stored + derived
+    const allCats = [...new Set([...categories, ...Object.keys(counts)])].sort();
+    allCats.forEach(cat => {
+        const s = cat.replace(/'/g, "\\'");
+        html += `<li class="category-item ${activeCategory === cat ? 'active' : ''}" onclick="filterByCategory('${s}')">
+            <i class="ph-bold ph-folder-simple"></i>
+            <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(cat)}</span>
+            <span class="cat-count">${counts[cat] || 0}</span>
+            <button class="cat-delete" title="Delete category" onclick="deleteCategory(event,'${s}')">
+                <i class="ph-bold ph-x"></i>
+            </button>
         </li>`;
-
-    let datalistHtml = '';
-    Object.keys(countMap).sort().forEach(cat => {
-        const safe = cat.replace(/'/g, "\\'");
-        html += `
-            <li class="category-item ${activeCategory === cat ? 'active' : ''}"
-                onclick="filterByCategory('${safe}')">
-                <i class="ph-bold ph-folder-simple"></i>
-                ${escHtml(cat)}
-                <span class="cat-count">${countMap[cat]}</span>
-            </li>`;
-        datalistHtml += `<option value="${cat}"></option>`;
     });
-
     categoryList.innerHTML = html;
+
+    // Sync datalist for autocomplete elsewhere
     const dl = document.getElementById('categoryOptions');
-    if (dl) dl.innerHTML = datalistHtml;
+    if (dl) dl.innerHTML = allCats.map(c => `<option value="${c}"></option>`).join('');
 }
 
-// ═══════════════════════════════════════════════
-//  FILTER
-// ═══════════════════════════════════════════════
-window.filterByCategory = function (category) {
-    activeCategory = category;
-    renderCategories();
-    renderProjects();
-    headerTitle.textContent = category === 'All' ? 'All Projects' : category;
-    headerSub.textContent = category === 'All'
-        ? 'Your vibe-coded apps, all in one place'
-        : `Projects in "${category}"`;
+// ─── Add new category from sidebar ─────────────────────
+document.getElementById('sidebarAddCatBtn').addEventListener('click', () => {
+    const wrap = document.getElementById('newCatInput');
+    const inp = document.getElementById('newCatField');
+    wrap.classList.remove('hidden');
+    inp.value = '';
+    inp.focus();
+});
+
+document.getElementById('newCatField').addEventListener('keydown', async e => {
+    if (e.key === 'Enter') {
+        const n = e.target.value.trim();
+        if (n) await doCreateCategory(n);
+        document.getElementById('newCatInput').classList.add('hidden');
+        e.target.value = '';
+    }
+    if (e.key === 'Escape') {
+        document.getElementById('newCatInput').classList.add('hidden');
+        e.target.value = '';
+    }
+});
+
+async function doCreateCategory(name) {
+    try {
+        await fetch(CAT_BASE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
+        if (!categories.includes(name)) { categories.push(name); categories.sort(); }
+        msSetCategories(categories);
+        renderCategorySidebar();
+        showToast(`Category "${name}" created.`, 'success');
+    } catch { showToast('Could not create category.', 'error'); }
+}
+
+window.deleteCategory = async (e, name) => {
+    e.stopPropagation();
+    if (!confirm(`Delete category "${name}"? It will be removed from all projects.`)) return;
+    try {
+        await fetch(`${CAT_BASE}/${encodeURIComponent(name)}`, { method: 'DELETE' });
+        categories = categories.filter(c => c !== name);
+        projects = projects.map(p => ({ ...p, categories: (p.categories || []).filter(c => c !== name) }));
+        if (activeCategory === name) activeCategory = 'All';
+        msSetCategories(categories);
+        renderCategorySidebar();
+        renderProjects();
+        showToast(`"${name}" deleted.`, 'info');
+    } catch { showToast('Could not delete category.', 'error'); }
 };
 
-// ═══════════════════════════════════════════════
-//  RENDER PROJECTS
-// ═══════════════════════════════════════════════
-function renderProjects() {
-    let filtered = [...projects];
+// ─── Filter ────────────────────────────────────────────
+window.filterByCategory = function (cat) {
+    activeCategory = cat;
+    renderCategorySidebar();
+    renderProjects();
+    headerTitle.textContent = cat === 'All' ? 'All Projects' : cat;
+};
 
-    if (activeCategory !== 'All') {
-        filtered = filtered.filter(p => (p.category || '').trim() === activeCategory);
+// ═══════════════════════════════════════════════════════
+//  MULTI-SELECT CATEGORY COMPONENT
+// ═══════════════════════════════════════════════════════
+let msSelected = new Set();
+let msAllCats = [];
+
+const msInput = document.getElementById('msInput');
+const msTags = document.getElementById('msTags');
+const msDropdown = document.getElementById('msDropdown');
+const msOptionList = document.getElementById('msOptionList');
+const msEmpty = document.getElementById('msEmpty');
+const msCreate = document.getElementById('msCreate');
+const msCreateLbl = document.getElementById('msCreateLabel');
+const msWrapper = document.getElementById('pCategorySelect');
+
+function msSetCategories(cats) { msAllCats = [...cats]; }
+
+function msOpen() {
+    msInput.value = '';
+    msDropdown.classList.remove('hidden');
+    msRenderOptions('');
+}
+function msClose() {
+    msDropdown.classList.add('hidden');
+    msInput.value = '';
+}
+
+function msRenderOptions(q) {
+    const filtered = msAllCats.filter(c => c.toLowerCase().includes(q.toLowerCase()));
+    msOptionList.innerHTML = '';
+    filtered.forEach(cat => {
+        const sel = msSelected.has(cat);
+        const div = document.createElement('div');
+        div.className = `ms-option${sel ? ' is-selected' : ''}`;
+        div.innerHTML = `<span class="ms-check">${sel ? '<i class="ph-bold ph-check"></i>' : ''}</span>${escHtml(cat)}`;
+        div.addEventListener('click', () => { msToggle(cat); msRenderOptions(msInput.value); });
+        msOptionList.appendChild(div);
+    });
+    const noMatch = filtered.length === 0;
+    msEmpty.classList.toggle('hidden', !noMatch || !q);
+    const exact = msAllCats.some(c => c.toLowerCase() === q.toLowerCase());
+    msCreate.classList.toggle('hidden', !q || exact);
+    if (q && !exact) msCreateLbl.textContent = q;
+}
+
+function msToggle(cat) {
+    if (msSelected.has(cat)) msSelected.delete(cat); else msSelected.add(cat);
+    msRenderTags();
+}
+
+function msRenderTags() {
+    msTags.innerHTML = '';
+    msSelected.forEach(cat => {
+        const span = document.createElement('span');
+        span.className = 'ms-tag';
+        span.innerHTML = `${escHtml(cat)}<button type="button" data-c="${escAttr(cat)}"><i class="ph-bold ph-x"></i></button>`;
+        span.querySelector('button').addEventListener('click', e => {
+            e.stopPropagation();
+            msSelected.delete(cat);
+            msRenderTags();
+            msRenderOptions(msInput.value);
+        });
+        msTags.appendChild(span);
+    });
+}
+
+function msReset() { msSelected = new Set(); msRenderTags(); msClose(); }
+function msGetValue() { return [...msSelected]; }
+function msSetValue(arr) { msSelected = new Set(arr || []); msRenderTags(); }
+
+// Multi-select events
+msInput.addEventListener('focus', msOpen);
+msInput.addEventListener('input', () => msRenderOptions(msInput.value.trim()));
+
+msCreate.addEventListener('click', async () => {
+    const name = msInput.value.trim(); if (!name) return;
+    await doCreateCategory(name);
+    msToggle(name);
+    msRenderOptions('');
+    msInput.value = '';
+});
+
+document.addEventListener('click', e => {
+    if (!msWrapper.contains(e.target)) msClose();
+});
+
+msInput.addEventListener('keydown', e => {
+    if (e.key === 'Escape') msClose();
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        const q = msInput.value.trim();
+        if (!q) return;
+        const exact = msAllCats.find(c => c.toLowerCase() === q.toLowerCase());
+        if (exact) { msToggle(exact); msInput.value = ''; msRenderOptions(''); }
+        else msCreate.click();
     }
+});
 
+// ═══════════════════════════════════════════════════════
+//  RENDER CARDS
+// ═══════════════════════════════════════════════════════
+function renderProjects() {
+    let list = [...projects];
+    if (activeCategory !== 'All') list = list.filter(p => (p.categories || []).includes(activeCategory));
     if (searchQuery) {
         const q = searchQuery.toLowerCase();
-        filtered = filtered.filter(p =>
+        list = list.filter(p =>
             p.name.toLowerCase().includes(q) ||
             (p.path || '').toLowerCase().includes(q) ||
-            (p.category || '').toLowerCase().includes(q) ||
+            (p.categories || []).some(c => c.toLowerCase().includes(q)) ||
             (p.notes || '').toLowerCase().includes(q)
         );
     }
+    list.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
 
-    // Pinned cards float to top
-    filtered.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
-
-    if (filtered.length === 0) {
-        projectsGrid.innerHTML = `
-            <div class="empty-state">
-                <i class="ph-duotone ph-rocket-launch"></i>
-                <h2>${projects.length === 0 ? 'No projects yet' : 'Nothing found'}</h2>
-                <p>${projects.length === 0
-                ? 'Click <strong>New Project</strong> to add your first vibe-coded app.'
-                : 'Try a different search or category.'}</p>
-            </div>`;
+    if (!list.length) {
+        projectsGrid.innerHTML = `<div class="empty-state">
+            <i class="ph-duotone ph-rocket-launch"></i>
+            <h2>${projects.length === 0 ? 'No projects yet' : 'Nothing found'}</h2>
+            <p>${projects.length === 0
+                ? 'Click <strong>New Project</strong> to add your first app.'
+                : 'Try a different search or category.'}</p></div>`;
         return;
     }
 
     projectsGrid.innerHTML = '';
-
-    filtered.forEach((p, idx) => {
+    list.forEach((p, idx) => {
         const card = document.createElement('div');
         card.className = `project-card${p.pinned ? ' pinned' : ''}`;
-        card.style.animationDelay = `${idx * 0.055}s`;
+        card.style.animationDelay = `${idx * 0.05}s`;
         card.setAttribute('draggable', 'true');
         card.dataset.projectId = p.id;
 
-        // logo
-        const logoHtml = p.logo
-            ? `<img src="${escAttr(p.logo)}" alt="${escAttr(p.name)} logo"
-                 onerror="this.parentElement.innerHTML='<i class=\\'ph-bold ph-code\\'></i>'">`
-            : `<i class="ph-bold ph-code"></i>`;
+        // Avatar
+        const av = getAV(p.name);
+        const inits = getInitials(p.name);
+        const avHtml = p.logo
+            ? `<div class="project-avatar"><img src="${escAttr(p.logo)}" alt=""
+                onerror="this.parentElement.style.cssText='--av-bg:${av.bg};--av-fg:${av.fg}';this.parentElement.textContent='${inits}'"></div>`
+            : `<div class="project-avatar" style="--av-bg:${av.bg};--av-fg:${av.fg}">${inits}</div>`;
 
-        // category badge
-        const catBadge = p.category
-            ? `<span class="card-category-badge">
-                   <i class="ph-bold ph-folder-simple"></i>${escHtml(p.category)}
-               </span>`
+        // Category dots
+        const cats = p.categories || [];
+        const catsHtml = cats.length
+            ? `<div class="card-cats">${cats.map(c => `<span class="project-cat">
+                <span class="cat-dot" style="background:${getCatColor(c)}"></span>${escHtml(c)}
+              </span>`).join('')}</div>`
             : '';
 
-        // notes preview
+        // Notes
         const notesHtml = (p.notes || '').trim()
-            ? `<div class="card-notes">${escHtml(p.notes.trim())}</div>`
-            : '';
+            ? `<div class="card-notes">${escHtml(p.notes.trim())}</div>` : '';
 
-        // command buttons
-        let cmdButtons = '';
+        // Commands
+        let cmds = '';
         (p.commands || []).forEach((c, i) => {
             const key = `${p.id}_${i}`;
-            if (runningCommands[key]) {
-                cmdButtons += `
-                    <button class="btn cmd-btn running"
-                        onclick="stopCommand('${p.id}', ${i}, '${escAttr(c.name)}')">
-                        <i class="ph-fill ph-circle" style="font-size:.5rem"></i>
-                        ${escHtml(c.name)}
-                    </button>`;
-            } else {
-                cmdButtons += `
-                    <button class="btn cmd-btn"
-                        onclick="executeCommand('${p.id}', ${i})">
-                        <i class="ph-bold ph-play"></i>
-                        ${escHtml(c.name)}
-                    </button>`;
-            }
+            cmds += runningCommands[key]
+                ? `<button class="btn cmd-btn running" onclick="stopCommand('${p.id}',${i},'${escAttr(c.name)}')">
+                     <i class="ph-fill ph-circle" style="font-size:6px"></i>${escHtml(c.name)}</button>`
+                : `<button class="btn cmd-btn" onclick="executeCommand('${p.id}',${i})">
+                     <i class="ph-bold ph-play"></i>${escHtml(c.name)}</button>`;
         });
 
         card.innerHTML = `
             <div class="card-drag-handle"><i class="ph-bold ph-dots-six-vertical"></i></div>
-
             <div class="card-actions-top">
-                <button class="icon-btn pin-btn" title="${p.pinned ? 'Unpin' : 'Pin to top'}"
-                    onclick="togglePin('${p.id}')">
-                    <i class="ph-${p.pinned ? 'fill' : 'bold'} ph-star"
-                       style="color:${p.pinned ? 'var(--star)' : ''}"></i>
+                <button class="icon-btn pin-btn" title="${p.pinned ? 'Unpin' : 'Pin'}" onclick="togglePin('${p.id}')">
+                    <i class="ph-${p.pinned ? 'fill' : 'bold'} ph-star" style="${p.pinned ? 'color:var(--star)' : ''}"></i>
                 </button>
                 <button class="icon-btn" title="Edit" onclick="editProject('${p.id}')">
                     <i class="ph-bold ph-pencil-simple"></i>
@@ -231,252 +364,160 @@ function renderProjects() {
                     <i class="ph-bold ph-trash"></i>
                 </button>
             </div>
-
             <div class="card-header">
-                <div class="logo-display">${logoHtml}</div>
+                ${avHtml}
                 <div class="card-title">
                     <h3>${escHtml(p.name)}</h3>
                     <div class="card-path" title="${escAttr(p.path)}">${escHtml(p.path)}</div>
-                    ${catBadge}
+                    ${catsHtml}
                 </div>
             </div>
-
             ${notesHtml}
-
             <div class="actions-area">
                 <button class="btn cmd-btn ide-btn" onclick="openIDE('${p.id}')">
-                    <i class="ph-bold ph-terminal-window"></i>
-                    ${escHtml(p.ide || 'IDE')}
+                    <i class="ph-bold ph-terminal-window"></i>${escHtml(p.ide || 'IDE')}
                 </button>
-                ${cmdButtons}
+                ${cmds}
             </div>`;
-
         projectsGrid.appendChild(card);
     });
-
     setupDragDrop();
 }
 
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 //  DRAG & DROP
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 function setupDragDrop() {
-    const cards = projectsGrid.querySelectorAll('.project-card');
-
-    cards.forEach(card => {
-        card.addEventListener('dragstart', (e) => {
-            // Prevent drag when clicking buttons or the drag handle isn't visible
+    projectsGrid.querySelectorAll('.project-card').forEach(card => {
+        card.addEventListener('dragstart', e => {
             if (e.target.closest('button')) { e.preventDefault(); return; }
             dragSrcId = card.dataset.projectId;
             e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/plain', dragSrcId);
             setTimeout(() => card.classList.add('dragging'), 0);
         });
-
         card.addEventListener('dragend', () => {
             card.classList.remove('dragging');
-            projectsGrid.querySelectorAll('.project-card')
-                .forEach(c => c.classList.remove('drag-over'));
+            projectsGrid.querySelectorAll('.project-card').forEach(c => c.classList.remove('drag-over'));
             dragSrcId = null;
         });
-
-        card.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            if (card.dataset.projectId !== dragSrcId) {
-                card.classList.add('drag-over');
-            }
+        card.addEventListener('dragover', e => {
+            e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+            if (card.dataset.projectId !== dragSrcId) card.classList.add('drag-over');
         });
-
-        card.addEventListener('dragleave', (e) => {
-            if (!card.contains(e.relatedTarget)) {
-                card.classList.remove('drag-over');
-            }
+        card.addEventListener('dragleave', e => {
+            if (!card.contains(e.relatedTarget)) card.classList.remove('drag-over');
         });
-
-        card.addEventListener('drop', (e) => {
-            e.preventDefault();
-            card.classList.remove('drag-over');
-            const targetId = card.dataset.projectId;
-            if (!dragSrcId || dragSrcId === targetId) return;
-
-            // Reorder in the master array
-            const srcIdx = projects.findIndex(p => p.id === dragSrcId);
-            if (srcIdx === -1) return;
-            const [moved] = projects.splice(srcIdx, 1);
-            const newTgtIdx = projects.findIndex(p => p.id === targetId);
-            if (newTgtIdx === -1) { projects.push(moved); }
-            else { projects.splice(newTgtIdx, 0, moved); }
-
+        card.addEventListener('drop', e => {
+            e.preventDefault(); card.classList.remove('drag-over');
+            const tgt = card.dataset.projectId;
+            if (!dragSrcId || dragSrcId === tgt) return;
+            const si = projects.findIndex(p => p.id === dragSrcId);
+            if (si === -1) return;
+            const [moved] = projects.splice(si, 1);
+            const ti = projects.findIndex(p => p.id === tgt);
+            projects.splice(ti === -1 ? projects.length : ti, 0, moved);
             renderProjects();
-            persistOrder();
+            fetch(`${API_BASE}/reorder`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: projects.map(p => p.id) })
+            }).catch(console.error);
         });
     });
 }
 
-async function persistOrder() {
-    try {
-        await fetch(`${API_BASE}/reorder`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ids: projects.map(p => p.id) })
-        });
-    } catch (e) {
-        console.error('Failed to persist order:', e);
-    }
-}
-
-// ═══════════════════════════════════════════════
-//  PIN / FAVORITE
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+//  ACTIONS
+// ═══════════════════════════════════════════════════════
 window.togglePin = async function (id) {
-    const project = projects.find(p => p.id === id);
-    if (!project) return;
-    const newPinned = !project.pinned;
-
+    const p = projects.find(x => x.id === id); if (!p) return;
+    const next = !p.pinned;
     try {
-        const res = await fetch(`${API_BASE}/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...project, pinned: newPinned })
+        const r = await fetch(`${API_BASE}/${id}`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...p, pinned: next })
         });
-        if (res.ok) {
-            project.pinned = newPinned;
-            showToast(newPinned ? 'Pinned to top.' : 'Unpinned.', 'info');
-            renderProjects();
-        }
-    } catch (e) {
-        showToast('Could not toggle pin.', 'error');
-    }
+        if (r.ok) { p.pinned = next; showToast(next ? 'Pinned.' : 'Unpinned.', 'info'); renderProjects(); }
+    } catch { showToast('Could not toggle pin.', 'error'); }
 };
 
-// ═══════════════════════════════════════════════
-//  ACTIONS
-// ═══════════════════════════════════════════════
-async function executeCommand(id, cmdIndex) {
-    runningCommands[`${id}_${cmdIndex}`] = true;
-    renderProjects();
+async function executeCommand(id, idx) {
+    runningCommands[`${id}_${idx}`] = true; renderProjects();
     try {
-        const res = await fetch(`${API_BASE}/${id}/execute`, {
+        const r = await fetch(`${API_BASE}/${id}/execute`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ commandIndex: cmdIndex })
+            headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ commandIndex: idx })
         });
-        const data = await res.json();
-        if (!data.success) {
-            showToast(data.error || 'Execution failed.', 'error');
-            runningCommands[`${id}_${cmdIndex}`] = false;
-            renderProjects();
-        } else {
-            showToast('Command launched!', 'success');
-        }
-    } catch (e) {
-        showToast('Failed to execute command.', 'error');
-        runningCommands[`${id}_${cmdIndex}`] = false;
-        renderProjects();
-    }
+        const d = await r.json();
+        if (!d.success) { showToast(d.error || 'Execution failed.', 'error'); runningCommands[`${id}_${idx}`] = false; renderProjects(); }
+        else showToast('Launched!', 'success');
+    } catch { showToast('Failed to launch.', 'error'); runningCommands[`${id}_${idx}`] = false; renderProjects(); }
 }
 
-async function stopCommand(id, cmdIndex, commandName) {
+async function stopCommand(id, idx, name) {
     try {
-        const res = await fetch(`${API_BASE}/${id}/stop`, {
+        const r = await fetch(`${API_BASE}/${id}/stop`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ commandIndex: cmdIndex, commandName })
+            headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ commandIndex: idx, commandName: name })
         });
-        const data = await res.json();
-        if (data.success) {
-            showToast(`Stopped "${commandName}".`, 'info');
-            runningCommands[`${id}_${cmdIndex}`] = false;
-            renderProjects();
-        } else {
-            showToast(data.error || 'Could not stop.', 'error');
-        }
-    } catch (e) {
-        showToast('Failed to stop. It may have already exited.', 'error');
-        runningCommands[`${id}_${cmdIndex}`] = false;
-        renderProjects();
-    }
+        const d = await r.json();
+        if (d.success) { showToast(`Stopped "${name}".`, 'info'); runningCommands[`${id}_${idx}`] = false; renderProjects(); }
+        else showToast(d.error || 'Could not stop.', 'error');
+    } catch { showToast('Stop failed.', 'error'); runningCommands[`${id}_${idx}`] = false; renderProjects(); }
 }
 
 async function openIDE(id) {
     try {
-        const res = await fetch(`${API_BASE}/${id}/open-ide`, { method: 'POST' });
-        const data = await res.json();
-        if (data.success) showToast('Opened in IDE.', 'success');
-        else showToast(data.error || 'Could not open IDE.', 'error');
-    } catch (e) {
-        showToast('Failed to open IDE.', 'error');
-    }
+        const d = await (await fetch(`${API_BASE}/${id}/open-ide`, { method: 'POST' })).json();
+        if (d.success) showToast('Opened in IDE.', 'success');
+        else showToast(d.error || 'Could not open IDE.', 'error');
+    } catch { showToast('Failed to open IDE.', 'error'); }
 }
 
-async function deleteProject(id) {
-    const project = projects.find(p => p.id === id);
-    if (!project) return;
-    if (!confirm(`Delete "${project.name}"? This cannot be undone.`)) return;
+window.deleteProject = async function (id) {
+    const p = projects.find(x => x.id === id); if (!p) return;
+    if (!confirm(`Delete "${p.name}"? This cannot be undone.`)) return;
     try {
         await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
-        showToast(`"${project.name}" removed.`, 'info');
-        fetchProjects();
-    } catch (e) {
-        showToast('Failed to delete project.', 'error');
-    }
-}
+        showToast(`"${p.name}" removed.`, 'info'); fetchAll();
+    } catch { showToast('Delete failed.', 'error'); }
+};
 
 window.editProject = function (id) {
-    const project = projects.find(p => p.id === id);
-    if (!project) return;
-
+    const p = projects.find(x => x.id === id); if (!p) return;
     document.getElementById('modalTitle').textContent = 'Edit Project';
-    document.getElementById('editProjectId').value = project.id;
-    document.getElementById('pName').value = project.name || '';
-    document.getElementById('pPath').value = project.path || '';
-    document.getElementById('pLogo').value = project.logo || '';
-    document.getElementById('pCategory').value = project.category || '';
-    document.getElementById('pIde').value = project.ide || 'code';
-    document.getElementById('pNotes').value = project.notes || '';
-
+    document.getElementById('editProjectId').value = p.id;
+    document.getElementById('pName').value = p.name || '';
+    document.getElementById('pPath').value = p.path || '';
+    document.getElementById('pLogo').value = p.logo || '';
+    document.getElementById('pIde').value = p.ide || 'code';
+    document.getElementById('pNotes').value = p.notes || '';
+    msSetValue(p.categories || []);
     commandsList.innerHTML = '';
-    if (project.commands && project.commands.length > 0) {
-        project.commands.forEach(cmd => {
-            const row = addCommandRow();
-            row.querySelector('.cmd-name').value = cmd.name;
-            row.querySelector('.cmd-val').value = cmd.cmd;
-        });
-    } else {
-        addCommandRow();
-    }
-
+    if (p.commands?.length) p.commands.forEach(c => {
+        const r = addCommandRow(); r.querySelector('.cmd-name').value = c.name; r.querySelector('.cmd-val').value = c.cmd;
+    }); else addCommandRow();
     addModal.classList.remove('hidden');
 };
 
-window.deleteProject = deleteProject;
-
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 //  MODAL
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 function openModal() {
     document.getElementById('modalTitle').textContent = 'New Project';
     document.getElementById('editProjectId').value = '';
-    projectForm.reset();
-    commandsList.innerHTML = '';
-    addCommandRow();
+    projectForm.reset(); msReset();
+    commandsList.innerHTML = ''; addCommandRow();
     addModal.classList.remove('hidden');
 }
+function closeModal() { addModal.classList.add('hidden'); msClose(); }
 
-function closeModal() { addModal.classList.add('hidden'); }
-
-// ═══════════════════════════════════════════════
-//  COMMAND ROWS
-// ═══════════════════════════════════════════════
 function addCommandRow() {
     const row = document.createElement('div');
     row.className = 'cmd-row';
     row.innerHTML = `
         <input type="text" placeholder="label" class="cmd-name" required>
         <input type="text" placeholder="npm run dev" class="cmd-val" required>
-        <button type="button" class="icon-btn btn-remove-cmd"
-            title="Remove" style="color: var(--red);">
+        <button type="button" class="icon-btn btn-remove-cmd" style="color:var(--red)">
             <i class="ph-bold ph-minus-circle"></i>
         </button>`;
     commandsList.appendChild(row);
@@ -484,89 +525,58 @@ function addCommandRow() {
     return row;
 }
 
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 //  FORM SUBMIT
-// ═══════════════════════════════════════════════
-projectForm.addEventListener('submit', async (e) => {
+// ═══════════════════════════════════════════════════════
+projectForm.addEventListener('submit', async e => {
     e.preventDefault();
-
-    const commands = [];
+    const cmds = [];
     commandsList.querySelectorAll('.cmd-row').forEach(r => {
-        const name = r.querySelector('.cmd-name').value.trim();
-        const cmd = r.querySelector('.cmd-val').value.trim();
-        if (name && cmd) commands.push({ name, cmd });
+        const n = r.querySelector('.cmd-name').value.trim();
+        const c = r.querySelector('.cmd-val').value.trim();
+        if (n && c) cmds.push({ name: n, cmd: c });
     });
-
     const editId = document.getElementById('editProjectId').value;
-    const isEdit = !!editId;
-    const existing = isEdit ? projects.find(p => p.id === editId) : null;
-
+    const existing = editId ? projects.find(p => p.id === editId) : null;
     const body = {
         name: document.getElementById('pName').value.trim(),
         path: document.getElementById('pPath').value.trim(),
         logo: document.getElementById('pLogo').value.trim(),
-        category: document.getElementById('pCategory').value.trim(),
         ide: document.getElementById('pIde').value.trim(),
         notes: document.getElementById('pNotes').value.trim(),
-        pinned: existing ? existing.pinned : false,
-        commands
+        categories: msGetValue(),
+        pinned: existing?.pinned || false,
+        commands: cmds,
     };
-
-    const url = isEdit ? `${API_BASE}/${editId}` : API_BASE;
-    const method = isEdit ? 'PUT' : 'POST';
-
     try {
-        const res = await fetch(url, {
-            method,
+        const r = await fetch(editId ? `${API_BASE}/${editId}` : API_BASE, {
+            method: editId ? 'PUT' : 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
         });
-
-        if (res.ok) {
-            closeModal();
-            showToast(isEdit ? 'Project updated!' : 'Project added!', 'success');
-            fetchProjects();
-        } else {
-            showToast('Failed to save project.', 'error');
-        }
-    } catch (err) {
-        showToast('Network error — could not save.', 'error');
-    }
+        if (r.ok) { closeModal(); showToast(editId ? 'Project updated!' : 'Project added!', 'success'); fetchAll(); }
+        else showToast('Failed to save.', 'error');
+    } catch { showToast('Network error.', 'error'); }
 });
 
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 //  EVENT LISTENERS
-// ═══════════════════════════════════════════════
-searchInput.addEventListener('input', (e) => {
-    searchQuery = e.target.value;
-    renderProjects();
-});
-
+// ═══════════════════════════════════════════════════════
+searchInput.addEventListener('input', e => { searchQuery = e.target.value; renderProjects(); });
 addProjectBtn.addEventListener('click', openModal);
 closeModalBtn.addEventListener('click', closeModal);
 cancelModalBtn.addEventListener('click', closeModal);
 addCmdBtn.addEventListener('click', addCommandRow);
-addModal.addEventListener('click', (e) => { if (e.target === addModal) closeModal(); });
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !addModal.classList.contains('hidden')) closeModal();
-});
+addModal.addEventListener('click', e => { if (e.target === addModal) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !addModal.classList.contains('hidden')) closeModal(); });
 
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 //  HELPERS
-// ═══════════════════════════════════════════════
-function escHtml(str) {
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-}
+// ═══════════════════════════════════════════════════════
+function escHtml(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function escAttr(s) { return String(s).replace(/'/g, '&#39;').replace(/"/g, '&quot;'); }
 
-function escAttr(str) {
-    return String(str).replace(/'/g, '&#39;').replace(/"/g, '&quot;');
-}
-
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 //  INIT
-// ═══════════════════════════════════════════════
-fetchProjects();
+// ═══════════════════════════════════════════════════════
+fetchAll();
