@@ -1,196 +1,417 @@
 #!/usr/bin/env node
 const express = require('express');
 const cors = require('cors');
-const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
 
-// Store data next to server.js so it's always in the project folder
-const DATA_FILE = path.join(__dirname, 'projects.json');
+const {
+    normalizeProject,
+    normalizeMcpServer,
+    normalizePrompt,
+    normalizeMarkdownFile,
+    pushMcpHistory,
+    readData,
+    writeData,
+} = require('./lib/data-store');
+const { discoverServer, invokeTool } = require('./lib/mcp-client');
+const {
+    deleteMarkdownFile,
+    getMarkdownRecord,
+    importMarkdownFiles,
+    streamMarkdownZip,
+    updateMarkdownFile,
+} = require('./lib/markdown-store');
+
 const app = express();
 const PORT = 3000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '12mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ─────────────────────────────────────────────────────────
-//  DATA LAYER
-//  File format: { categories: string[], projects: Project[] }
-//  Migrates automatically from old format (plain array)
-// ─────────────────────────────────────────────────────────
-function migrateProject(p) {
-    // Converts old single `category` string → `categories` array
-    return {
-        ...p,
-        categories: Array.isArray(p.categories)
-            ? p.categories
-            : (p.category ? [p.category] : []),
-        notes: p.notes || '',
-        pinned: p.pinned || false,
-    };
+function getData() {
+    return readData();
 }
 
-function readData() {
-    if (!fs.existsSync(DATA_FILE)) return { categories: [], projects: [] };
-    try {
-        const raw = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-        if (Array.isArray(raw)) {
-            // Old format — migrate
-            const projects = raw.map(migrateProject);
-            const cats = [...new Set(projects.flatMap(p => p.categories))].sort();
-            return { categories: cats, projects };
-        }
-        return {
-            categories: raw.categories || [],
-            projects: (raw.projects || []).map(migrateProject),
-        };
-    } catch { return { categories: [], projects: [] }; }
+function saveData(data) {
+    writeData(data);
 }
 
-function writeData(data) {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+function sendNotFound(res, label) {
+    return res.status(404).json({ error: `${label} not found` });
 }
 
-// ─────────────────────────────────────────────────────────
-//  CATEGORIES
-// ─────────────────────────────────────────────────────────
+function updateCategoriesFromProjects(data) {
+    const fromProjects = data.projects.flatMap(project => project.categories || []);
+    data.categories = [...new Set([...(data.categories || []), ...fromProjects])].sort((a, b) => a.localeCompare(b));
+}
 
-// GET all categories (stored + derived from projects)
-app.get('/api/categories', (req, res) => {
-    const data = readData();
-    const fromProjects = data.projects.flatMap(p => p.categories || []);
-    const all = [...new Set([...data.categories, ...fromProjects])].sort();
-    res.json(all);
+function summarizeResultPreview(result) {
+    if (result.textOutput) {
+        return result.textOutput.slice(0, 140);
+    }
+
+    if (result.structuredContent) {
+        return JSON.stringify(result.structuredContent).slice(0, 140);
+    }
+
+    return result.isError ? 'Tool returned an error result.' : 'Tool executed successfully.';
+}
+
+app.get('/api/bootstrap', (req, res) => {
+    res.json(getData());
 });
 
-// POST create a new standalone category
+app.get('/api/categories', (req, res) => {
+    res.json(getData().categories);
+});
+
 app.post('/api/categories', (req, res) => {
-    const name = (req.body.name || '').trim();
+    const name = typeof req.body.name === 'string' ? req.body.name.trim() : '';
     if (!name) return res.status(400).json({ error: 'Name required' });
-    const data = readData();
+
+    const data = getData();
     if (!data.categories.includes(name)) {
         data.categories.push(name);
-        data.categories.sort();
-        writeData(data);
+        data.categories.sort((a, b) => a.localeCompare(b));
+        saveData(data);
     }
+
     res.json({ success: true, name });
 });
 
-// DELETE a category (removes from stored list and from all projects)
 app.delete('/api/categories/:name', (req, res) => {
     const name = decodeURIComponent(req.params.name);
-    const data = readData();
-    data.categories = data.categories.filter(c => c !== name);
-    data.projects = data.projects.map(p => ({
-        ...p,
-        categories: (p.categories || []).filter(c => c !== name),
+    const data = getData();
+    data.categories = data.categories.filter(category => category !== name);
+    data.projects = data.projects.map(project => ({
+        ...project,
+        categories: (project.categories || []).filter(category => category !== name),
     }));
-    writeData(data);
+    saveData(data);
     res.json({ success: true });
 });
 
-// ─────────────────────────────────────────────────────────
-//  PROJECTS
-// ─────────────────────────────────────────────────────────
+app.get('/api/projects', (req, res) => {
+    res.json(getData().projects);
+});
 
-app.get('/api/projects', (req, res) => res.json(readData().projects));
-
-// Reorder (must be before /:id routes)
 app.post('/api/projects/reorder', (req, res) => {
     const { ids } = req.body;
     if (!Array.isArray(ids)) return res.status(400).json({ error: 'ids must be an array' });
-    const data = readData();
-    const ordered = ids.map(id => data.projects.find(p => p.id === id)).filter(Boolean);
-    const rest = data.projects.filter(p => !ids.includes(p.id));
-    data.projects = [...ordered, ...rest];
-    writeData(data);
+
+    const data = getData();
+    const ordered = ids.map(id => data.projects.find(project => project.id === id)).filter(Boolean);
+    const remaining = data.projects.filter(project => !ids.includes(project.id));
+    data.projects = [...ordered, ...remaining];
+    saveData(data);
     res.json({ success: true });
 });
 
-// Create project
 app.post('/api/projects', (req, res) => {
-    const data = readData();
-    const p = {
-        id: Date.now().toString(),
-        name: req.body.name || 'Unnamed Project',
-        path: req.body.path || '',
-        logo: req.body.logo || '',
-        ide: req.body.ide || 'code',
-        categories: req.body.categories || [],
-        commands: req.body.commands || [],
-        notes: req.body.notes || '',
-        pinned: req.body.pinned || false,
-    };
-    data.projects.push(p);
-    writeData(data);
-    res.json(p);
+    const data = getData();
+    const project = normalizeProject(req.body);
+    data.projects.push(project);
+    updateCategoriesFromProjects(data);
+    saveData(data);
+    res.json(project);
 });
 
-// Delete project
-app.delete('/api/projects/:id', (req, res) => {
-    const data = readData();
-    data.projects = data.projects.filter(p => p.id !== req.params.id);
-    writeData(data);
-    res.json({ success: true });
-});
-
-// Update project
 app.put('/api/projects/:id', (req, res) => {
-    const data = readData();
-    const i = data.projects.findIndex(p => p.id === req.params.id);
-    if (i === -1) return res.status(404).json({ error: 'Project not found' });
-    const old = data.projects[i];
-    data.projects[i] = {
+    const data = getData();
+    const index = data.projects.findIndex(project => project.id === req.params.id);
+    if (index === -1) return sendNotFound(res, 'Project');
+
+    data.projects[index] = normalizeProject({
+        ...data.projects[index],
+        ...req.body,
         id: req.params.id,
-        name: req.body.name || old.name,
-        path: req.body.path || old.path,
-        logo: req.body.logo !== undefined ? req.body.logo : old.logo,
-        ide: req.body.ide || old.ide,
-        categories: req.body.categories !== undefined ? req.body.categories : old.categories,
-        commands: req.body.commands || old.commands,
-        notes: req.body.notes !== undefined ? req.body.notes : old.notes,
-        pinned: req.body.pinned !== undefined ? req.body.pinned : old.pinned,
-    };
-    writeData(data);
-    res.json(data.projects[i]);
+    });
+    updateCategoriesFromProjects(data);
+    saveData(data);
+    res.json(data.projects[index]);
 });
 
-// Execute command
-app.post('/api/projects/:id/execute', (req, res) => {
-    const data = readData();
-    const project = data.projects.find(p => p.id === req.params.id);
-    if (!project) return res.status(404).json({ error: 'Project not found' });
-    const cmdObj = project.commands[req.body.commandIndex];
-    if (!cmdObj) return res.status(400).json({ error: 'Command not found' });
-    const uid = `VibeID:${project.id}-${req.body.commandIndex}`;
-    exec(`start "" cmd.exe /k "echo ${uid} > nul && cd /d "${project.path}" && ${cmdObj.cmd}"`);
+app.delete('/api/projects/:id', (req, res) => {
+    const data = getData();
+    data.projects = data.projects.filter(project => project.id !== req.params.id);
+    saveData(data);
     res.json({ success: true });
 });
 
-// Stop command
+app.post('/api/projects/:id/execute', (req, res) => {
+    const data = getData();
+    const project = data.projects.find(item => item.id === req.params.id);
+    if (!project) return sendNotFound(res, 'Project');
+
+    const command = project.commands?.[req.body.commandIndex];
+    if (!command) return res.status(400).json({ error: 'Command not found' });
+
+    const uid = `VibeID:${project.id}-${req.body.commandIndex}`;
+    exec(`start "" cmd.exe /k "echo ${uid} > nul && cd /d "${project.path}" && ${command.cmd}"`);
+    res.json({ success: true });
+});
+
 app.post('/api/projects/:id/stop', (req, res) => {
     const { commandIndex, commandName } = req.body;
     const uid = `VibeID:${req.params.id}-${commandIndex}`;
     const psCmd = `powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \\"Name='cmd.exe' and CommandLine LIKE '%${uid}%'\\" | Select-Object -ExpandProperty ProcessId"`;
-    exec(psCmd, (err, stdout) => {
-        if (err || !stdout.trim()) return res.json({ success: false, error: 'Process not found or already stopped.' });
-        const pids = stdout.trim().split('\n').map(p => p.trim()).filter(Boolean);
+
+    exec(psCmd, (error, stdout) => {
+        if (error || !stdout.trim()) {
+            return res.json({ success: false, error: 'Process not found or already stopped.' });
+        }
+
+        const pids = stdout.trim().split('\n').map(pid => pid.trim()).filter(Boolean);
         if (!pids.length) return res.json({ success: false, error: 'Process not found.' });
+
         pids.forEach(pid => exec(`taskkill /PID ${pid} /T /F`));
         res.json({ success: true, message: `Stopped ${commandName || 'command'}` });
     });
 });
 
-// Open IDE
 app.post('/api/projects/:id/open-ide', (req, res) => {
-    const data = readData();
-    const project = data.projects.find(p => p.id === req.params.id);
-    if (!project) return res.status(404).json({ error: 'Project not found' });
-    exec(`start "" cmd.exe /c "cd /d "${project.path}" && ${project.ide} ."`, err => {
-        if (err) console.error(err);
+    const data = getData();
+    const project = data.projects.find(item => item.id === req.params.id);
+    if (!project) return sendNotFound(res, 'Project');
+
+    exec(`start "" cmd.exe /c "cd /d "${project.path}" && ${project.ide} ."`, error => {
+        if (error) console.error(error);
     });
+
     res.json({ success: true });
 });
 
-app.listen(PORT, () => console.log(`Vibe Launcher at http://localhost:${PORT}`));
+app.get('/api/mcp-servers', (req, res) => {
+    res.json(getData().mcpServers);
+});
+
+app.post('/api/mcp-servers', (req, res) => {
+    const data = getData();
+    const server = normalizeMcpServer(req.body, undefined, { touch: true });
+    data.mcpServers.unshift(server);
+    saveData(data);
+    res.json(server);
+});
+
+app.put('/api/mcp-servers/:id', (req, res) => {
+    const data = getData();
+    const index = data.mcpServers.findIndex(server => server.id === req.params.id);
+    if (index === -1) return sendNotFound(res, 'MCP server');
+
+    data.mcpServers[index] = normalizeMcpServer(req.body, data.mcpServers[index], { touch: true });
+    saveData(data);
+    res.json(data.mcpServers[index]);
+});
+
+app.delete('/api/mcp-servers/:id', (req, res) => {
+    const data = getData();
+    data.mcpServers = data.mcpServers.filter(server => server.id !== req.params.id);
+    saveData(data);
+    res.json({ success: true });
+});
+
+app.post('/api/mcp-servers/:id/discover', async (req, res) => {
+    const data = getData();
+    const index = data.mcpServers.findIndex(server => server.id === req.params.id);
+    if (index === -1) return sendNotFound(res, 'MCP server');
+
+    try {
+        const discovery = await discoverServer(data.mcpServers[index]);
+        data.mcpServers[index] = normalizeMcpServer({
+            ...data.mcpServers[index],
+            transport: discovery.resolvedTransport,
+            tools: discovery.tools,
+            capabilities: discovery.capabilities,
+            serverInfo: discovery.serverInfo,
+            lastStatus: 'online',
+            lastCheckedAt: new Date().toISOString(),
+            lastError: '',
+        }, data.mcpServers[index], { touch: true });
+        saveData(data);
+        res.json(data.mcpServers[index]);
+    } catch (error) {
+        data.mcpServers[index] = normalizeMcpServer({
+            ...data.mcpServers[index],
+            lastStatus: 'offline',
+            lastCheckedAt: new Date().toISOString(),
+            lastError: error.message || 'Failed to discover server.',
+        }, data.mcpServers[index], { touch: true });
+        saveData(data);
+        res.status(502).json({
+            error: error.message || 'Failed to discover server.',
+            server: data.mcpServers[index],
+        });
+    }
+});
+
+app.post('/api/mcp-servers/:id/tools/:toolName/invoke', async (req, res) => {
+    const data = getData();
+    const index = data.mcpServers.findIndex(server => server.id === req.params.id);
+    if (index === -1) return sendNotFound(res, 'MCP server');
+
+    const toolName = decodeURIComponent(req.params.toolName);
+    const args = req.body.arguments && typeof req.body.arguments === 'object' ? req.body.arguments : {};
+
+    try {
+        const invocation = await invokeTool(data.mcpServers[index], toolName, args);
+        const historyEntry = {
+            toolName,
+            timestamp: new Date().toISOString(),
+            success: !invocation.result.isError,
+            arguments: args,
+            preview: summarizeResultPreview(invocation.result),
+            result: {
+                isError: invocation.result.isError,
+                textOutput: invocation.result.textOutput,
+                structuredContent: invocation.result.structuredContent,
+            },
+        };
+
+        data.mcpServers[index] = pushMcpHistory(normalizeMcpServer({
+            ...data.mcpServers[index],
+            transport: invocation.resolvedTransport,
+            lastStatus: 'online',
+            lastCheckedAt: historyEntry.timestamp,
+            lastError: invocation.result.isError ? historyEntry.preview : '',
+        }, data.mcpServers[index], { touch: true }), historyEntry);
+
+        saveData(data);
+
+        res.json({
+            ...invocation.result,
+            history: data.mcpServers[index].history,
+        });
+    } catch (error) {
+        data.mcpServers[index] = normalizeMcpServer({
+            ...data.mcpServers[index],
+            lastStatus: 'offline',
+            lastCheckedAt: new Date().toISOString(),
+            lastError: error.message || 'Tool invocation failed.',
+        }, data.mcpServers[index], { touch: true });
+        saveData(data);
+
+        res.status(502).json({
+            error: error.message || 'Tool invocation failed.',
+            server: data.mcpServers[index],
+        });
+    }
+});
+
+app.get('/api/prompts', (req, res) => {
+    res.json(getData().prompts);
+});
+
+app.post('/api/prompts', (req, res) => {
+    const data = getData();
+    const prompt = normalizePrompt(req.body, undefined, { touch: true });
+    data.prompts.unshift(prompt);
+    saveData(data);
+    res.json(prompt);
+});
+
+app.put('/api/prompts/:id', (req, res) => {
+    const data = getData();
+    const index = data.prompts.findIndex(prompt => prompt.id === req.params.id);
+    if (index === -1) return sendNotFound(res, 'Prompt');
+
+    data.prompts[index] = normalizePrompt(req.body, data.prompts[index], { touch: true });
+    saveData(data);
+    res.json(data.prompts[index]);
+});
+
+app.post('/api/prompts/:id/duplicate', (req, res) => {
+    const data = getData();
+    const prompt = data.prompts.find(item => item.id === req.params.id);
+    if (!prompt) return sendNotFound(res, 'Prompt');
+
+    const duplicated = normalizePrompt({
+        ...prompt,
+        id: undefined,
+        title: `${prompt.title} Copy`,
+        favorite: false,
+        createdAt: undefined,
+        updatedAt: undefined,
+    }, undefined, { touch: true });
+
+    data.prompts.unshift(duplicated);
+    saveData(data);
+    res.json(duplicated);
+});
+
+app.delete('/api/prompts/:id', (req, res) => {
+    const data = getData();
+    data.prompts = data.prompts.filter(prompt => prompt.id !== req.params.id);
+    saveData(data);
+    res.json({ success: true });
+});
+
+app.get('/api/markdown-files', (req, res) => {
+    res.json(getData().markdownFiles);
+});
+
+app.post('/api/markdown-files/import', (req, res) => {
+    const files = Array.isArray(req.body.files) ? req.body.files : [];
+    if (!files.length) return res.status(400).json({ error: 'At least one markdown file is required.' });
+
+    const imported = importMarkdownFiles(files, {
+        tags: Array.isArray(req.body.tags) ? req.body.tags : [],
+        description: typeof req.body.description === 'string' ? req.body.description : '',
+    });
+
+    if (!imported.length) return res.status(400).json({ error: 'No valid markdown files were provided.' });
+
+    const data = getData();
+    data.markdownFiles.unshift(...imported.map(file => normalizeMarkdownFile(file, undefined, { touch: false })));
+    saveData(data);
+    res.json(imported);
+});
+
+app.post('/api/markdown-files/batch', (req, res) => {
+    const ids = Array.isArray(req.body.ids) ? req.body.ids : [];
+    if (!ids.length) return res.status(400).json({ error: 'ids must be a non-empty array' });
+
+    const files = getData().markdownFiles.filter(file => ids.includes(file.id)).map(getMarkdownRecord);
+    res.json(files);
+});
+
+app.post('/api/markdown-files/export', (req, res) => {
+    const ids = Array.isArray(req.body.ids) ? req.body.ids : [];
+    if (!ids.length) return res.status(400).json({ error: 'ids must be a non-empty array' });
+
+    const files = getData().markdownFiles.filter(file => ids.includes(file.id));
+    if (!files.length) return res.status(404).json({ error: 'No markdown files found for export.' });
+    streamMarkdownZip(files, res);
+});
+
+app.get('/api/markdown-files/:id', (req, res) => {
+    const file = getData().markdownFiles.find(item => item.id === req.params.id);
+    if (!file) return sendNotFound(res, 'Markdown file');
+    res.json(getMarkdownRecord(file));
+});
+
+app.put('/api/markdown-files/:id', (req, res) => {
+    const data = getData();
+    const index = data.markdownFiles.findIndex(file => file.id === req.params.id);
+    if (index === -1) return sendNotFound(res, 'Markdown file');
+
+    const updated = updateMarkdownFile(data.markdownFiles[index], req.body);
+    data.markdownFiles[index] = normalizeMarkdownFile(updated, data.markdownFiles[index], { touch: false });
+    saveData(data);
+    res.json(data.markdownFiles[index]);
+});
+
+app.delete('/api/markdown-files/:id', (req, res) => {
+    const data = getData();
+    const file = data.markdownFiles.find(item => item.id === req.params.id);
+    if (!file) return sendNotFound(res, 'Markdown file');
+
+    deleteMarkdownFile(file);
+    data.markdownFiles = data.markdownFiles.filter(item => item.id !== req.params.id);
+    saveData(data);
+    res.json({ success: true });
+});
+
+app.listen(PORT, () => {
+    console.log(`Vibe Launcher at http://localhost:${PORT}`);
+});

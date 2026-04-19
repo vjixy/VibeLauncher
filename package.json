@@ -22,6 +22,9 @@
   },
   "homepage": "https://github.com/vjixy/VibeLauncher#readme",
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "ajv": "^8.18.0",
+    "archiver": "^7.0.1",
     "cors": "^2.8.6",
     "express": "^5.2.1"
   }

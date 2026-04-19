@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vibe Launcher</title>
-    <meta name="description" content="Your personal launcher for vibe-coded apps.">
+    <meta name="description" content="Launcher, MCP explorer, prompt library, and markdown workspace for vibe-coded projects.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -14,149 +14,66 @@
 </head>
 
 <body>
-    <div class="layout-wrapper">
-
-        <!-- ── Sidebar ── -->
+    <div class="app-shell">
         <aside class="sidebar">
             <div class="sidebar-brand">
                 <div class="brand-icon"><i class="ph-fill ph-rocket-launch"></i></div>
-                <span class="brand-name">Vibe Launcher</span>
+                <div>
+                    <div class="brand-name">Vibe Launcher</div>
+                    <div class="brand-sub">Projects, MCP tools, prompts, markdown</div>
+                </div>
             </div>
-            <div class="sidebar-section">
-                <!-- Header row with label + add button -->
-                <div class="sidebar-section-header">
-                    <span class="sidebar-section-label">Workspaces</span>
-                    <button class="sidebar-add-btn" id="sidebarAddCatBtn" title="New category">
+
+            <nav id="sectionNav" class="section-nav"></nav>
+
+            <section class="sidebar-panel">
+                <div class="sidebar-panel-header">
+                    <div>
+                        <div id="sidebarTitle" class="sidebar-section-label"></div>
+                        <p id="sidebarSub" class="sidebar-section-copy"></p>
+                    </div>
+                    <button id="sidebarActionBtn" class="sidebar-add-btn hidden" type="button">
                         <i class="ph-bold ph-plus"></i>
                     </button>
                 </div>
-                <!-- Inline new-category input -->
-                <div class="new-cat-input hidden" id="newCatInput">
-                    <input type="text" id="newCatField" placeholder="Category name… (Enter to save)">
-                </div>
-                <!-- Category list -->
-                <ul id="categoryList" class="category-list">
-                    <li class="category-item active" onclick="filterByCategory('All')">
-                        <i class="ph-bold ph-squares-four"></i>
-                        All Projects
-                        <span class="cat-count">0</span>
-                    </li>
-                </ul>
-            </div>
+                <div id="sidebarPanel" class="sidebar-panel-body"></div>
+            </section>
         </aside>
 
-        <!-- ── Main ── -->
-        <main class="container">
+        <main class="main-shell">
             <header class="app-header">
                 <div class="header-left">
-                    <h1 id="headerTitle">All Projects</h1>
+                    <h1 id="headerTitle">Vibe Launcher</h1>
                     <p id="headerSub"></p>
                 </div>
+
                 <div class="header-actions">
-                    <div class="search-box">
+                    <label class="search-box">
                         <i class="ph-bold ph-magnifying-glass"></i>
-                        <input type="text" id="searchInput" placeholder="Search…" autocomplete="off">
-                    </div>
-                    <button id="themeToggleBtn" class="theme-toggle" aria-label="Toggle theme">
+                        <input type="text" id="globalSearch" placeholder="Search">
+                    </label>
+
+                    <button id="themeToggleBtn" class="theme-toggle" aria-label="Toggle theme" type="button">
                         <i class="ph-bold ph-sun" id="themeIcon"></i>
                     </button>
-                    <button id="addProjectBtn" class="btn primary-btn">
-                        <i class="ph-bold ph-plus"></i> New Project
-                    </button>
+
+                    <button id="primaryActionBtn" class="btn primary-btn" type="button"></button>
                 </div>
             </header>
 
-            <div id="projectsGrid" class="projects-grid">
+            <section id="sectionContent" class="section-content">
                 <div class="loading-state">
                     <div class="spinner"></div>
                 </div>
-            </div>
+            </section>
         </main>
     </div>
 
     <div id="toast-container"></div>
+    <input id="markdownUploadInput" type="file" accept=".md,text/markdown" multiple hidden>
+    <div id="modalRoot"></div>
 
-    <!-- ── Modal ── -->
-    <div id="addModal" class="modal-overlay hidden">
-        <div class="modal">
-            <div class="modal-header">
-                <h2 id="modalTitle">New Project</h2>
-                <button id="closeModalBtn" class="icon-btn"><i class="ph-bold ph-x"></i></button>
-            </div>
-            <div class="modal-body">
-                <form id="projectForm">
-                    <input type="hidden" id="editProjectId" value="">
-                    <div class="form-columns">
-
-                        <!-- Left column -->
-                        <div class="form-col">
-                            <div class="form-group">
-                                <label for="pName">Project Name</label>
-                                <input type="text" id="pName" required placeholder="e.g. Magic App">
-                            </div>
-
-                            <!-- Multi-select category dropdown -->
-                            <div class="form-group">
-                                <label>Categories <span style="opacity:.4">(optional)</span></label>
-                                <div class="ms-wrapper" id="pCategorySelect">
-                                    <div class="ms-control" id="msTrigger">
-                                        <div class="ms-tags" id="msTags"></div>
-                                        <input class="ms-input" id="msInput" type="text"
-                                            placeholder="Search or create categories…" autocomplete="off">
-                                    </div>
-                                    <div class="ms-dropdown hidden" id="msDropdown">
-                                        <div class="ms-option-list" id="msOptionList"></div>
-                                        <div class="ms-empty hidden" id="msEmpty">No matching categories</div>
-                                        <div class="ms-create hidden" id="msCreate">
-                                            <i class="ph-bold ph-plus"></i>
-                                            Create "<span id="msCreateLabel"></span>"
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="pPath">Project Path</label>
-                                <input type="text" id="pPath" required placeholder="C:\Users\you\Projects\App">
-                            </div>
-                            <div class="form-group">
-                                <label for="pLogo">Logo URL <span style="opacity:.4">(optional)</span></label>
-                                <input type="url" id="pLogo" placeholder="https://…/logo.png">
-                            </div>
-                            <div class="form-group">
-                                <label for="pIde">IDE Command</label>
-                                <input type="text" id="pIde" required placeholder="code, cursor, windsurf…">
-                            </div>
-                            <div class="form-group">
-                                <label for="pNotes">Notes <span style="opacity:.4">(optional)</span></label>
-                                <textarea id="pNotes" placeholder="What does this project do?…"></textarea>
-                            </div>
-                        </div>
-
-                        <!-- Right column -->
-                        <div class="form-col commands-col">
-                            <div class="commands-header">
-                                <h3>Run Commands</h3>
-                                <button type="button" id="addCmdBtn" class="text-btn">
-                                    <i class="ph-bold ph-plus"></i> Add
-                                </button>
-                            </div>
-                            <div id="commandsList" class="commands-scrollable"></div>
-                        </div>
-                    </div>
-
-                    <div class="modal-actions">
-                        <button type="button" id="cancelModalBtn" class="btn secondary-btn">Cancel</button>
-                        <button type="submit" class="btn primary-btn">
-                            <i class="ph-bold ph-floppy-disk"></i> Save Project
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <script src="app.js"></script>
+    <script type="module" src="app.js"></script>
 </body>
 
 </html>
