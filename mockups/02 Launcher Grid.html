@@ -1,0 +1,461 @@
+<!-- Screen 2: Launcher — project grid -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Vibe Launcher — Launcher</title>
+<meta name="viewport" content="width=1440, initial-scale=1" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/tokens.css">
+<style>
+  .proj-card { position: relative; }
+  .proj-card .drag-handle {
+    position: absolute; left: -14px; top: 50%; transform: translateY(-50%);
+    opacity: 0; transition: opacity 140ms ease; color: var(--text-3);
+  }
+  .proj-card:hover .drag-handle { opacity: 1; }
+  .proj-card .actions { opacity: 0; transition: opacity 140ms ease; }
+  .proj-card:hover .actions { opacity: 1; }
+  .proj-card.is-hovered { border-color: var(--line-3); background: #14151a; }
+  .proj-card.is-hovered .actions { opacity: 1; }
+
+  /* Pin star */
+  .star-btn { color: var(--text-3); transition: color 140ms ease, transform 140ms ease; }
+  .star-btn:hover { color: var(--amber); transform: scale(1.08); }
+  .star-btn.on { color: var(--amber); }
+
+  /* Workspace row */
+  .ws-row {
+    display: flex; align-items: center; gap: 8px;
+    height: 30px; padding: 0 10px; border-radius: 6px;
+    color: var(--text-1); font-size: 12.5px; font-weight: 500; cursor: pointer;
+  }
+  .ws-row:hover { background: var(--bg-2); color: var(--text-0); }
+  .ws-row.active { background: var(--accent-soft); color: var(--accent-hover); }
+  .ws-row .count { margin-left: auto; font-size: 11px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+  .ws-row.active .count { color: var(--accent-hover); opacity: 0.8; }
+
+  /* View-toggle buttons */
+  .seg { display: inline-flex; padding: 3px; background: var(--bg-2); border: 1px solid var(--line-1); border-radius: 7px; }
+  .seg button { padding: 3px 8px; border-radius: 4px; color: var(--text-1); font-size: 11.5px; font-weight: 500; display: inline-flex; align-items: center; gap: 5px; }
+  .seg button.active { background: var(--bg-1); color: var(--text-0); box-shadow: 0 1px 2px rgba(0,0,0,0.25); }
+
+  /* Sidebar color swatch — workspace indicator */
+  .ws-bar { width: 3px; height: 14px; border-radius: 2px; flex: none; }
+</style>
+</head>
+<body>
+<div class="min-h-screen flex">
+
+  <!-- SIDEBAR -->
+  <aside class="w-[260px] shrink-0 flex flex-col border-r" style="background: var(--bg-1); border-color: var(--line-1);">
+    <div class="px-4 pt-4 pb-3 flex items-center gap-2.5">
+      <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, var(--accent), #9b5dff);">
+        <i class="ph-fill ph-rocket-launch text-white text-[15px]"></i>
+      </div>
+      <div class="flex flex-col leading-tight">
+        <span class="text-[13.5px] font-semibold">Vibe Launcher</span>
+        <span class="text-[10.5px] mono" style="color: var(--text-2);">localhost:3000</span>
+      </div>
+      <button class="ml-auto btn btn-icon btn-ghost"><i class="ph ph-command text-[14px]"></i></button>
+    </div>
+    <div class="px-3 pt-2">
+      <div class="label-sm px-2 pb-2">Navigate</div>
+      <nav class="flex flex-col gap-0.5">
+        <div class="nav-item"><i class="ph ph-squares-four text-[15px]"></i><span>Dashboard</span></div>
+        <div class="nav-item active"><i class="ph-fill ph-rocket text-[15px]"></i><span>Launcher</span><span class="ml-auto text-[11px]">12</span></div>
+        <div class="nav-item"><i class="ph ph-plugs text-[15px]"></i><span>MCP Servers</span><span class="ml-auto text-[11px]" style="color: var(--text-2);">4</span></div>
+        <div class="nav-item"><i class="ph ph-chat-circle-text text-[15px]"></i><span>Prompts</span><span class="ml-auto text-[11px]" style="color: var(--text-2);">28</span></div>
+        <div class="nav-item"><i class="ph ph-file-text text-[15px]"></i><span>Markdown</span><span class="ml-auto text-[11px]" style="color: var(--text-2);">17</span></div>
+      </nav>
+    </div>
+
+    <!-- Context panel: Workspaces -->
+    <div class="px-3 pt-5 flex-1 flex flex-col min-h-0">
+      <div class="flex items-center justify-between px-2 pb-2">
+        <div class="label-sm">Workspaces</div>
+        <button class="text-[11px]" style="color: var(--accent-hover);">+ New</button>
+      </div>
+
+      <div class="flex flex-col gap-0.5 overflow-y-auto">
+        <div class="ws-row active">
+          <i class="ph ph-folders text-[14px]"></i>
+          <span>All Projects</span>
+          <span class="count">12</span>
+        </div>
+        <div class="ws-row">
+          <span class="ws-bar" style="background: var(--accent);"></span>
+          <span>Side projects</span>
+          <span class="count">6</span>
+        </div>
+        <div class="ws-row">
+          <span class="ws-bar" style="background: var(--green);"></span>
+          <span>Client work</span>
+          <span class="count">3</span>
+        </div>
+        <div class="ws-row">
+          <span class="ws-bar" style="background: var(--amber);"></span>
+          <span>Experiments</span>
+          <span class="count">2</span>
+        </div>
+        <div class="ws-row">
+          <span class="ws-bar" style="background: var(--cyan);"></span>
+          <span>Archived</span>
+          <span class="count">1</span>
+        </div>
+      </div>
+
+      <div class="mt-5 px-2">
+        <div class="label-sm pb-2">View</div>
+        <div class="seg w-full">
+          <button class="active flex-1 justify-center"><i class="ph-fill ph-squares-four text-[12px]"></i>Grid</button>
+          <button class="flex-1 justify-center"><i class="ph ph-list text-[12px]"></i>List</button>
+        </div>
+
+        <div class="label-sm pb-2 pt-4">Sort by</div>
+        <div class="field h-8">
+          <i class="ph ph-sort-ascending text-[13px]" style="color: var(--text-2);"></i>
+          <select class="w-full" style="color: var(--text-0);">
+            <option>Recently run</option>
+            <option>Name</option>
+            <option>Pinned first</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="px-3 pb-3 pt-3 border-t" style="border-color: var(--line-1);">
+      <div class="flex items-center gap-1">
+        <button class="btn btn-ghost btn-icon"><i class="ph ph-moon text-[14px]"></i></button>
+        <button class="btn btn-ghost btn-icon"><i class="ph ph-gear-six text-[14px]"></i></button>
+        <div class="ml-auto flex items-center gap-1.5">
+          <span class="dot dot-green" style="width:6px;height:6px;box-shadow:none;"></span>
+          <span class="text-[10.5px] mono" style="color: var(--text-2);">v0.4.2</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="flex-1 flex flex-col min-w-0">
+    <header class="sticky top-0 z-20 h-14 px-6 flex items-center gap-4 border-b" style="background: rgba(17,18,22,0.72); backdrop-filter: saturate(140%) blur(12px); border-color: var(--line-1);">
+      <div class="flex flex-col leading-tight">
+        <h1 class="text-[15px] font-semibold">All Projects</h1>
+        <span class="text-[11.5px]" style="color: var(--text-2);">12 projects · 3 pinned · <span style="color: var(--green);">2 running</span></span>
+      </div>
+      <div class="flex-1 max-w-[520px] mx-auto">
+        <div class="field h-9">
+          <i class="ph ph-magnifying-glass text-[14px]" style="color: var(--text-2);"></i>
+          <input placeholder="Search projects, prompts, tools, or markdown…" />
+          <span class="kbd">⌘</span><span class="kbd">K</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button class="btn btn-ghost btn-icon"><i class="ph ph-funnel text-[14px]"></i></button>
+        <button class="btn btn-primary">
+          <i class="ph ph-plus text-[13px]"></i> New Project
+        </button>
+        <button class="btn btn-icon btn-ghost"><i class="ph ph-dots-three-vertical text-[14px]"></i></button>
+      </div>
+    </header>
+
+    <section class="p-6">
+
+      <!-- Filter bar (inline) -->
+      <div class="flex items-center gap-2 mb-5">
+        <span class="label-sm">Filter:</span>
+        <button class="pill pill-accent">All</button>
+        <button class="pill"><span class="dot dot-green" style="width:6px;height:6px;box-shadow:none;"></span>Running</button>
+        <button class="pill"><i class="ph-fill ph-star text-[10px]" style="color: var(--amber);"></i>Pinned</button>
+        <button class="pill">Has commands</button>
+        <span class="ml-auto text-[11.5px]" style="color: var(--text-2);">Showing 12 of 12</span>
+      </div>
+
+      <!-- Grid -->
+      <div class="grid grid-cols-3 gap-3">
+
+        <!-- Card 1: RUNNING -->
+        <div class="card card-hover proj-card p-4" style="border-color: rgba(78,201,160,0.20);">
+          <i class="ph ph-dots-six-vertical drag-handle text-[14px]"></i>
+          <div class="flex items-start gap-3">
+            <div class="logo-tile w-10 h-10" style="background: linear-gradient(135deg, #2d1f4f, #1a1030); color: #b8a6ff;">GS</div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-1.5">
+                <span class="text-[15px] font-semibold truncate-1">glow-synth</span>
+                <span class="pill pill-sm" style="background: var(--green-soft); color: var(--green); border-color: rgba(78,201,160,0.22);">
+                  <span class="dot dot-green pulse" style="width:5px;height:5px;"></span>running
+                </span>
+              </div>
+              <div class="text-[11px] mono truncate-1" style="color: var(--text-2);">~/code/glow-synth</div>
+            </div>
+            <button class="star-btn on"><i class="ph-fill ph-star text-[14px]"></i></button>
+          </div>
+          <div class="mt-3 flex items-center gap-1.5 flex-wrap">
+            <span class="tag">synth</span>
+            <span class="tag">wasm</span>
+          </div>
+          <div class="mt-3 flex items-center gap-1.5 flex-wrap">
+            <span class="pill pill-sm pill-run">
+              <span class="dot dot-green pulse" style="width:5px;height:5px;"></span>
+              <span class="mono">dev</span>
+            </span>
+            <span class="pill pill-sm pill-build"><span class="mono">build</span></span>
+            <span class="pill pill-sm pill-test"><span class="mono">test</span></span>
+          </div>
+          <div class="truncate-2 mt-3 text-[12px]" style="color: var(--text-2);">Polyphonic WebAudio synth. Experimenting with wavetables + feedback FM. Port to Rust/WASM in <span class="mono">/engine</span>.</div>
+          <div class="mt-3 pt-3 border-t flex items-center justify-between actions" style="border-color: var(--line-1);">
+            <button class="btn btn-sm btn-ghost"><i class="ph ph-stop-circle text-[13px]" style="color: var(--red);"></i>Stop</button>
+            <div class="flex items-center gap-1">
+              <button class="btn btn-sm btn-ghost btn-icon"><i class="ph ph-terminal text-[13px]"></i></button>
+              <button class="btn btn-sm btn-ghost btn-icon"><i class="ph ph-code text-[13px]"></i></button>
+              <button class="btn btn-sm btn-ghost btn-icon"><i class="ph ph-pencil-simple text-[13px]"></i></button>
+              <button class="btn btn-sm btn-ghost btn-icon"><i class="ph ph-dots-three text-[13px]"></i></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: PINNED, plain -->
+        <div class="card card-hover proj-card p-4">
+          <div class="flex items-start gap-3">
+            <div class="logo-tile w-10 h-10" style="background: linear-gradient(135deg, #183a32, #0e201b); color: #7fd4b5;">NB</div>
+            <div class="flex-1 min-w-0">
+              <span class="text-[15px] font-semibold truncate-1 block">notebook-cli</span>
+              <div class="text-[11px] mono truncate-1" style="color: var(--text-2);">~/code/notebook-cli</div>
+            </div>
+            <button class="star-btn on"><i class="ph-fill ph-star text-[14px]"></i></button>
+          </div>
+          <div class="mt-3 flex items-center gap-1.5 flex-wrap">
+            <span class="tag">cli</span>
+            <span class="tag">rust</span>
+            <span class="tag" style="color: var(--text-2);">+1</span>
+          </div>
+          <div class="mt-3 flex items-center gap-1.5 flex-wrap">
+            <span class="pill pill-sm pill-run">
+              <span class="dot dot-green pulse" style="width:5px;height:5px;"></span>
+              <span class="mono">serve</span>
+            </span>
+            <span class="pill pill-sm pill-custom"><span class="mono">watch</span></span>
+          </div>
+          <div class="mt-3 pt-3 border-t flex items-center justify-between" style="border-color: var(--line-1);">
+            <span class="text-[11px]" style="color: var(--text-2);">Running · 2h 08m</span>
+            <div class="flex items-center gap-1 actions">
+              <button class="btn btn-sm btn-ghost btn-icon"><i class="ph ph-code text-[13px]"></i></button>
+              <button class="btn btn-sm btn-ghost btn-icon"><i class="ph ph-dots-three text-[13px]"></i></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3: PLAIN -->
+        <div class="card card-hover proj-card p-4">
+          <div class="flex items-start gap-3">
+            <div class="logo-tile w-10 h-10" style="background: linear-gradient(135deg, #3a2318, #1f130b); color: #e7a27f;">TD</div>
+            <div class="flex-1 min-w-0">
+              <span class="text-[15px] font-semibold truncate-1 block">trip-diary</span>
+              <div class="text-[11px] mono truncate-1" style="color: var(--text-2);">~/code/trip-diary</div>
+            </div>
+            <button class="star-btn on"><i class="ph-fill ph-star text-[14px]"></i></button>
+          </div>
+          <div class="mt-3 flex items-center gap-1.5 flex-wrap">
+            <span class="tag">nextjs</span>
+            <span class="tag">personal</span>
+          </div>
+          <div class="mt-3 flex items-center gap-1.5 flex-wrap">
+            <span class="pill pill-sm pill-run"><span class="mono">dev</span></span>
+            <span class="pill pill-sm pill-build"><span class="mono">build</span></span>
+            <span class="pill pill-sm pill-custom"><span class="mono">deploy</span></span>
+          </div>
+          <div class="mt-3 pt-3 border-t flex items-center justify-between" style="border-color: var(--line-1);">
+            <span class="text-[11px]" style="color: var(--text-2);">Last run · yesterday</span>
+            <div class="flex items-center gap-1 actions">
+              <button class="btn btn-sm btn-ghost btn-icon"><i class="ph ph-code text-[13px]"></i></button>
+              <button class="btn btn-sm btn-ghost btn-icon"><i class="ph ph-dots-three text-[13px]"></i></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 4: HOVERED (actions visible) -->
+        <div class="card proj-card is-hovered p-4">
+          <i class="ph ph-dots-six-vertical drag-handle text-[14px]" style="opacity:1;"></i>
+          <div class="flex items-start gap-3">
+            <div class="logo-tile w-10 h-10" style="background: linear-gradient(135deg, #1e2d4f, #0e1630); color: #a6baff;">MT</div>
+            <div class="flex-1 min-w-0">
+              <span class="text-[15px] font-semibold truncate-1 block">metro-timer</span>
+              <div class="text-[11px] mono truncate-1" style="color: var(--text-2);">~/code/metro-timer</div>
+            </div>
+            <button class="star-btn"><i class="ph ph-star text-[14px]"></i></button>
+          </div>
+          <div class="mt-3 flex items-center gap-1.5 flex-wrap">
+            <span class="tag">tauri</span>
+            <span class="tag">rust</span>
+          </div>
+          <div class="mt-3 flex items-center gap-1.5 flex-wrap">
+            <span class="pill pill-sm pill-run"><span class="mono">dev</span></span>
+            <span class="pill pill-sm pill-build"><span class="mono">bundle</span></span>
+          </div>
+          <div class="mt-3 pt-3 border-t flex items-center justify-between" style="border-color: var(--line-1);">
+            <span class="text-[11px]" style="color: var(--text-2);">Last run · 3 days ago</span>
+            <div class="flex items-center gap-1">
+              <button class="btn btn-sm btn-secondary"><i class="ph ph-play text-[12px]" style="color: var(--green);"></i>Run</button>
+              <button class="btn btn-sm btn-ghost btn-icon" title="Open in IDE"><i class="ph ph-code text-[13px]"></i></button>
+              <button class="btn btn-sm btn-ghost btn-icon" title="Edit"><i class="ph ph-pencil-simple text-[13px]"></i></button>
+              <button class="btn btn-sm btn-ghost btn-icon" title="Delete"><i class="ph ph-trash text-[13px]" style="color: var(--red);"></i></button>
+              <button class="btn btn-sm btn-ghost btn-icon"><i class="ph ph-dots-three text-[13px]"></i></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 5: with note -->
+        <div class="card card-hover proj-card p-4">
+          <div class="flex items-start gap-3">
+            <div class="logo-tile w-10 h-10" style="background: linear-gradient(135deg, #3a2244, #1c1022); color: #d4a2e7;">RH</div>
+            <div class="flex-1 min-w-0">
+              <span class="text-[15px] font-semibold truncate-1 block">recipe-hero</span>
+              <div class="text-[11px] mono truncate-1" style="color: var(--text-2);">~/code/recipe-hero</div>
+            </div>
+            <button class="star-btn"><i class="ph ph-star text-[14px]"></i></button>
+          </div>
+          <div class="mt-3 flex items-center gap-1.5 flex-wrap">
+            <span class="tag">svelte</span>
+            <span class="tag">food</span>
+          </div>
+          <div class="mt-3 flex items-center gap-1.5 flex-wrap">
+            <span class="pill pill-sm pill-run"><span class="mono">dev</span></span>
+            <span class="pill pill-sm pill-test"><span class="mono">e2e</span></span>
+          </div>
+          <div class="truncate-2 mt-3 text-[12px]" style="color: var(--text-2);"><i class="ph ph-note text-[12px] mr-1" style="color: var(--text-3);"></i>Remember to bump sveltekit before the refactor. The image pipeline needs <span class="mono">sharp</span> v0.34+ or builds fail on Windows.</div>
+          <div class="mt-3 pt-3 border-t flex items-center justify-between" style="border-color: var(--line-1);">
+            <span class="text-[11px]" style="color: var(--text-2);">Last run · 6 days ago</span>
+            <div class="flex items-center gap-1 actions">
+              <button class="btn btn-sm btn-ghost btn-icon"><i class="ph ph-code text-[13px]"></i></button>
+              <button class="btn btn-sm btn-ghost btn-icon"><i class="ph ph-dots-three text-[13px]"></i></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 6: many categories -->
+        <div class="card card-hover proj-card p-4">
+          <div class="flex items-start gap-3">
+            <div class="logo-tile w-10 h-10" style="background: linear-gradient(135deg, #1e3a1e, #0e200e); color: #aad89f;">FC</div>
+            <div class="flex-1 min-w-0">
+              <span class="text-[15px] font-semibold truncate-1 block">focus-carrot</span>
+              <div class="text-[11px] mono truncate-1" style="color: var(--text-2);">~/code/focus-carrot</div>
+            </div>
+            <button class="star-btn"><i class="ph ph-star text-[14px]"></i></button>
+          </div>
+          <div class="mt-3 flex items-center gap-1.5 flex-wrap">
+            <span class="tag">extension</span>
+            <span class="tag">productivity</span>
+            <span class="tag" style="color: var(--text-2);">+3</span>
+          </div>
+          <div class="mt-3 flex items-center gap-1.5 flex-wrap">
+            <span class="pill pill-sm pill-run"><span class="mono">dev</span></span>
+            <span class="pill pill-sm pill-build"><span class="mono">pack</span></span>
+          </div>
+          <div class="mt-3 pt-3 border-t flex items-center justify-between" style="border-color: var(--line-1);">
+            <span class="text-[11px]" style="color: var(--text-2);">Last run · 1 week ago</span>
+            <div class="flex items-center gap-1 actions">
+              <button class="btn btn-sm btn-ghost btn-icon"><i class="ph ph-code text-[13px]"></i></button>
+              <button class="btn btn-sm btn-ghost btn-icon"><i class="ph ph-dots-three text-[13px]"></i></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 7: skeleton (loading) -->
+        <div class="card p-4" style="opacity: 0.7;">
+          <div class="flex items-start gap-3">
+            <div class="w-10 h-10 rounded-lg" style="background: var(--bg-3);"></div>
+            <div class="flex-1 min-w-0 flex flex-col gap-2">
+              <div class="h-3 rounded" style="width: 65%; background: var(--bg-3);"></div>
+              <div class="h-2.5 rounded" style="width: 85%; background: var(--bg-2);"></div>
+            </div>
+          </div>
+          <div class="mt-3 flex items-center gap-1.5">
+            <div class="h-4 w-12 rounded" style="background: var(--bg-2);"></div>
+            <div class="h-4 w-14 rounded" style="background: var(--bg-2);"></div>
+          </div>
+          <div class="mt-3 flex items-center gap-1.5">
+            <div class="h-5 w-16 rounded-full" style="background: var(--bg-2);"></div>
+            <div class="h-5 w-14 rounded-full" style="background: var(--bg-2);"></div>
+          </div>
+        </div>
+
+        <!-- Card 8: plain -->
+        <div class="card card-hover proj-card p-4">
+          <div class="flex items-start gap-3">
+            <div class="logo-tile w-10 h-10" style="background: linear-gradient(135deg, #3a1e2d, #1f101a); color: #e7a2bc;">SB</div>
+            <div class="flex-1 min-w-0">
+              <span class="text-[15px] font-semibold truncate-1 block">sticker-bot</span>
+              <div class="text-[11px] mono truncate-1" style="color: var(--text-2);">~/code/sticker-bot</div>
+            </div>
+            <button class="star-btn"><i class="ph ph-star text-[14px]"></i></button>
+          </div>
+          <div class="mt-3 flex items-center gap-1.5 flex-wrap">
+            <span class="tag">bot</span>
+            <span class="tag">discord</span>
+          </div>
+          <div class="mt-3 flex items-center gap-1.5 flex-wrap">
+            <span class="pill pill-sm pill-run"><span class="mono">start</span></span>
+          </div>
+          <div class="mt-3 pt-3 border-t flex items-center justify-between" style="border-color: var(--line-1);">
+            <span class="text-[11px]" style="color: var(--text-2);">Last run · 2 weeks ago</span>
+            <div class="flex items-center gap-1 actions">
+              <button class="btn btn-sm btn-ghost btn-icon"><i class="ph ph-code text-[13px]"></i></button>
+              <button class="btn btn-sm btn-ghost btn-icon"><i class="ph ph-dots-three text-[13px]"></i></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 9 -->
+        <div class="card card-hover proj-card p-4">
+          <div class="flex items-start gap-3">
+            <div class="logo-tile w-10 h-10" style="background: linear-gradient(135deg, #2d2d1f, #18180e); color: #d6d69e;">YA</div>
+            <div class="flex-1 min-w-0">
+              <span class="text-[15px] font-semibold truncate-1 block">yarn-ambient</span>
+              <div class="text-[11px] mono truncate-1" style="color: var(--text-2);">~/code/yarn-ambient</div>
+            </div>
+            <button class="star-btn"><i class="ph ph-star text-[14px]"></i></button>
+          </div>
+          <div class="mt-3 flex items-center gap-1.5 flex-wrap">
+            <span class="tag">audio</span>
+            <span class="tag">web</span>
+          </div>
+          <div class="mt-3 flex items-center gap-1.5 flex-wrap">
+            <span class="pill pill-sm pill-run"><span class="mono">dev</span></span>
+            <span class="pill pill-sm pill-build"><span class="mono">build</span></span>
+          </div>
+          <div class="mt-3 pt-3 border-t flex items-center justify-between" style="border-color: var(--line-1);">
+            <span class="text-[11px]" style="color: var(--text-2);">Last run · 3 weeks ago</span>
+            <div class="flex items-center gap-1 actions">
+              <button class="btn btn-sm btn-ghost btn-icon"><i class="ph ph-code text-[13px]"></i></button>
+              <button class="btn btn-sm btn-ghost btn-icon"><i class="ph ph-dots-three text-[13px]"></i></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty-workspace muted state (demonstrative) -->
+      <div class="mt-10">
+        <div class="label-sm mb-2">Archived · 0 projects</div>
+        <div class="card p-8 flex items-center justify-between" style="border-style: dashed; background: transparent;">
+          <div class="flex items-center gap-4">
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background: var(--bg-2); color: var(--text-2);">
+              <i class="ph ph-archive text-[18px]"></i>
+            </div>
+            <div>
+              <div class="text-[13.5px] font-semibold">No projects in this workspace yet</div>
+              <div class="text-[12px]" style="color: var(--text-2);">Drag a project onto the “Archived” row in the sidebar to move it here.</div>
+            </div>
+          </div>
+          <button class="btn btn-secondary btn-sm">Move a project</button>
+        </div>
+      </div>
+
+    </section>
+  </main>
+</div>
+</body>
+</html>

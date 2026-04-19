@@ -1,79 +1,38 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
-
+<html lang="en" data-theme="dark" data-accent="indigo" data-density="comfortable">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vibe Launcher</title>
-    <meta name="description" content="Launcher, MCP explorer, prompt library, and markdown workspace for vibe-coded projects.">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Vibe Launcher</title>
+<meta name="description" content="Launcher, MCP explorer, prompt library, and markdown workspace for vibe-coded projects.">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="app.css">
 </head>
-
 <body>
-    <div class="app-shell">
-        <aside class="sidebar">
-            <div class="sidebar-brand">
-                <div class="brand-icon"><i class="ph-fill ph-rocket-launch"></i></div>
-                <div>
-                    <div class="brand-name">Vibe Launcher</div>
-                    <div class="brand-sub">Projects, MCP tools, prompts, markdown</div>
-                </div>
-            </div>
 
-            <nav id="sectionNav" class="section-nav"></nav>
+<div class="app-shell min-h-screen flex">
+  <aside id="sidebar" class="sidebar"></aside>
+  <main class="flex-1 flex flex-col min-w-0">
+    <header id="appHeader" class="app-header"></header>
+    <section id="appContent" class="app-content">
+      <div class="loading-state"><div class="spinner"></div></div>
+    </section>
+  </main>
+</div>
 
-            <section class="sidebar-panel">
-                <div class="sidebar-panel-header">
-                    <div>
-                        <div id="sidebarTitle" class="sidebar-section-label"></div>
-                        <p id="sidebarSub" class="sidebar-section-copy"></p>
-                    </div>
-                    <button id="sidebarActionBtn" class="sidebar-add-btn hidden" type="button">
-                        <i class="ph-bold ph-plus"></i>
-                    </button>
-                </div>
-                <div id="sidebarPanel" class="sidebar-panel-body"></div>
-            </section>
-        </aside>
+<div id="drawerRoot"></div>
+<div id="modalRoot"></div>
+<div id="paletteRoot"></div>
+<div id="toastRoot"></div>
+<input id="fileUploadInput" type="file" accept=".md,text/markdown" multiple hidden>
 
-        <main class="main-shell">
-            <header class="app-header">
-                <div class="header-left">
-                    <h1 id="headerTitle">Vibe Launcher</h1>
-                    <p id="headerSub"></p>
-                </div>
-
-                <div class="header-actions">
-                    <label class="search-box">
-                        <i class="ph-bold ph-magnifying-glass"></i>
-                        <input type="text" id="globalSearch" placeholder="Search">
-                    </label>
-
-                    <button id="themeToggleBtn" class="theme-toggle" aria-label="Toggle theme" type="button">
-                        <i class="ph-bold ph-sun" id="themeIcon"></i>
-                    </button>
-
-                    <button id="primaryActionBtn" class="btn primary-btn" type="button"></button>
-                </div>
-            </header>
-
-            <section id="sectionContent" class="section-content">
-                <div class="loading-state">
-                    <div class="spinner"></div>
-                </div>
-            </section>
-        </main>
-    </div>
-
-    <div id="toast-container"></div>
-    <input id="markdownUploadInput" type="file" accept=".md,text/markdown" multiple hidden>
-    <div id="modalRoot"></div>
-
-    <script type="module" src="app.js"></script>
+<script type="module" src="main.js"></script>
 </body>
-
 </html>

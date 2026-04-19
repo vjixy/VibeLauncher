@@ -1,0 +1,175 @@
+<!-- Screen 10: Prompt modal (create/edit) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Vibe Launcher — Prompt Modal</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/tokens.css">
+<style>
+  .backdrop { background: rgba(0,0,0,0.55); backdrop-filter: blur(4px); }
+  .modal { width: 900px; max-height: 88vh; background: var(--bg-1); border: 1px solid var(--line-2); border-radius: 14px; box-shadow: 0 30px 80px rgba(0,0,0,0.55); display: flex; flex-direction: column; }
+  .label { font-size: 11.5px; font-weight: 500; color: var(--text-1); margin-bottom: 6px; display: block; }
+  .chip { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 4px 0 8px; background: var(--accent-soft); color: var(--accent-hover); border: 1px solid rgba(111,112,255,0.25); border-radius: 999px; font-size: 11px; font-weight: 500; }
+  .radio-tile { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--line-2); border-radius: 8px; cursor: pointer; background: var(--bg-2); font-size: 12.5px; }
+  .radio-tile.active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-hover); }
+  .var-token { background: var(--accent-soft); color: var(--accent-hover); padding: 1px 5px; border-radius: 3px; border: 1px solid rgba(111,112,255,0.3); }
+  .editor { font-family: var(--font-mono); font-size: 12.5px; line-height: 1.7; background: #0c0c10; border: 1px solid var(--line-1); border-radius: 8px; padding: 12px 14px; color: var(--text-0); min-height: 280px; }
+  .fmt-text { background: rgba(111,112,255,0.12); color: var(--accent-hover); border-color: rgba(111,112,255,0.22); }
+</style>
+</head>
+<body>
+<div class="min-h-screen" style="background: var(--bg-0); opacity: 0.3;"></div>
+
+<div class="fixed inset-0 backdrop z-40 flex items-center justify-center p-6">
+  <div class="modal fade-rise">
+    <div class="px-6 py-4 border-b flex items-center justify-between" style="border-color: var(--line-1);">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background: var(--accent-soft); color: var(--accent-hover);">
+          <i class="ph-fill ph-chat-circle-text text-[18px]"></i>
+        </div>
+        <div>
+          <h2 class="text-[16px] font-semibold">New prompt</h2>
+          <div class="text-[11.5px]" style="color: var(--text-2);">Saved to prompts library · available everywhere</div>
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-icon"><i class="ph ph-x text-[14px]"></i></button>
+    </div>
+
+    <div class="flex-1 overflow-y-auto">
+      <div class="grid grid-cols-[1fr_1.3fr] gap-6 p-6">
+
+        <!-- LEFT -->
+        <div class="flex flex-col gap-4">
+          <div>
+            <label class="label">Title</label>
+            <div class="field"><input value="Refactor to hooks" /></div>
+          </div>
+          <div>
+            <label class="label">Description</label>
+            <div class="field" style="height: auto; padding: 8px 10px;">
+              <textarea style="background:transparent;border:0;outline:0;color:var(--text-0);font:inherit;width:100%;resize:vertical;min-height:70px;">Convert a React class component to functional + hooks while preserving public API and render behavior.</textarea>
+            </div>
+          </div>
+
+          <div>
+            <label class="label">Format</label>
+            <div class="grid grid-cols-2 gap-2">
+              <div class="radio-tile active">
+                <div class="w-3 h-3 rounded-full border" style="border-color: var(--accent); position: relative;"><span style="position:absolute;inset:2px;border-radius:999px;background:var(--accent);"></span></div>
+                <span>Text</span>
+                <span class="pill pill-sm ml-auto fmt-text mono">simple</span>
+              </div>
+              <div class="radio-tile">
+                <div class="w-3 h-3 rounded-full border" style="border-color: var(--line-3);"></div>
+                <span>Chat</span>
+                <span class="pill pill-sm ml-auto mono" style="color: var(--text-2);">sys/usr/ast</span>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label class="label">Tags</label>
+            <div class="field" style="height: auto; padding: 6px 8px; flex-wrap: wrap; gap: 4px; min-height: 38px;">
+              <span class="chip">refactor<button><i class="ph ph-x text-[10px]"></i></button></span>
+              <span class="chip">react<button><i class="ph ph-x text-[10px]"></i></button></span>
+              <input placeholder="+ tag" class="flex-1 min-w-[60px]" style="background:transparent;border:0;outline:0;color:var(--text-0);font-size:12px;" />
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <input id="fav" type="checkbox" class="w-4 h-4" checked style="accent-color: var(--accent);" />
+            <label for="fav" class="text-[12.5px]" style="color: var(--text-1);">Add to favorites</label>
+            <i class="ph-fill ph-star text-[13px] ml-auto" style="color: var(--amber);"></i>
+          </div>
+
+          <div class="pt-3 border-t" style="border-color: var(--line-1);">
+            <label class="label">Example variables <span style="color: var(--text-3);">(JSON)</span></label>
+            <div class="editor" style="min-height: 100px; font-size: 11.5px;">
+<span style="color: var(--text-2);">{</span><br>
+&nbsp;&nbsp;<span style="color:#b8a6ff;">"component_name"</span>: <span style="color:#8fcfb3;">"UserCard"</span>,<br>
+&nbsp;&nbsp;<span style="color:#b8a6ff;">"lang"</span>: <span style="color:#8fcfb3;">"typescript"</span>,<br>
+&nbsp;&nbsp;<span style="color:#b8a6ff;">"keep_proptypes"</span>: <span style="color:#e7a2bc;">false</span><br>
+<span style="color: var(--text-2);">}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT -->
+        <div class="flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <label class="label" style="margin: 0;">Template</label>
+            <div class="flex items-center gap-2 text-[11px]" style="color: var(--text-2);">
+              <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full" style="background: var(--accent);"></span>3 variables</span>
+              <span class="mono">·</span>
+              <span>284 chars</span>
+            </div>
+          </div>
+          <div class="editor">
+You are a senior React engineer. Convert the following <span class="var-token">{{lang}}</span> class component to a functional component using hooks.<br><br>
+Component: <span class="var-token">{{component_name}}</span><br><br>
+Rules:<br>
+• Preserve the public API (props, ref forwarding, exported types).<br>
+• Match render output exactly.<br>
+• Replace <span class="mono">setState</span> with <span class="mono">useState</span>/<span class="mono">useReducer</span> as appropriate.<br>
+• Keep PropTypes? <span class="var-token">{{keep_proptypes}}</span><br><br>
+Return: (1) the converted file, (2) a short diff summary, (3) any follow-up tests to update.
+          </div>
+
+          <div class="card p-3">
+            <div class="flex items-center justify-between mb-2">
+              <span class="label-sm">Detected variables</span>
+              <button class="text-[11px]" style="color: var(--accent-hover);">+ Add</button>
+            </div>
+            <div class="grid grid-cols-3 gap-1.5">
+              <div class="flex items-center gap-1.5 px-2 py-1 rounded-md" style="background: var(--bg-2);">
+                <span class="var-token mono" style="font-size: 10.5px;">{{lang}}</span>
+                <span class="text-[10.5px] ml-auto" style="color: var(--text-2);">×1</span>
+              </div>
+              <div class="flex items-center gap-1.5 px-2 py-1 rounded-md" style="background: var(--bg-2);">
+                <span class="var-token mono" style="font-size: 10.5px;">{{component_name}}</span>
+                <span class="text-[10.5px] ml-auto" style="color: var(--text-2);">×1</span>
+              </div>
+              <div class="flex items-center gap-1.5 px-2 py-1 rounded-md" style="background: var(--bg-2);">
+                <span class="var-token mono" style="font-size: 10.5px;">{{keep_proptypes}}</span>
+                <span class="text-[10.5px] ml-auto" style="color: var(--text-2);">×1</span>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label class="label">Example output <span style="color: var(--text-3);">(optional)</span></label>
+            <div class="field" style="height: auto; padding: 8px 10px;">
+              <textarea placeholder="Paste a sample response so future-you remembers what good looks like…" style="background:transparent;border:0;outline:0;color:var(--text-0);font:inherit;width:100%;resize:vertical;min-height:70px;font-family: var(--font-mono); font-size: 12px;"></textarea>
+            </div>
+          </div>
+
+          <div>
+            <label class="label">Notes</label>
+            <div class="field" style="height: auto; padding: 8px 10px;">
+              <textarea placeholder="Private notes for yourself…" style="background:transparent;border:0;outline:0;color:var(--text-0);font:inherit;width:100%;resize:vertical;min-height:50px;">Works best with Sonnet. For very large components, split into two passes.</textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="px-6 py-3.5 border-t flex items-center justify-between" style="border-color: var(--line-1);">
+      <div class="flex items-center gap-2 text-[11.5px]" style="color: var(--text-2);">
+        <i class="ph ph-info text-[13px]"></i>
+        <span><span class="kbd">⌘</span><span class="kbd">S</span> to save · <span class="kbd">esc</span> to cancel</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button class="btn btn-ghost">Cancel</button>
+        <button class="btn btn-secondary"><i class="ph ph-eye text-[13px]"></i>Preview render</button>
+        <button class="btn btn-primary"><i class="ph ph-floppy-disk text-[13px]"></i>Save prompt</button>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

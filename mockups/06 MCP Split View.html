@@ -1,0 +1,418 @@
+<!-- Screen 6: MCP — server list + tool explorer (split view) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Vibe Launcher — MCP</title>
+<meta name="viewport" content="width=1440, initial-scale=1" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/tokens.css">
+<style>
+  .srv-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 8px;
+    border: 1px solid transparent;
+    cursor: pointer; transition: all 140ms ease;
+  }
+  .srv-row:hover { background: var(--bg-2); }
+  .srv-row.active { background: var(--accent-softer); border-color: rgba(111,112,255,0.25); }
+  .transport { font-size: 10px; font-weight: 600; padding: 1px 5px; border-radius: 3px; background: var(--bg-3); color: var(--text-1); letter-spacing: 0.02em; }
+  .t-http { background: rgba(111,112,255,0.15); color: var(--accent-hover); }
+  .t-sse { background: rgba(90,183,212,0.15); color: var(--cyan); }
+  .t-stdio { background: rgba(217,166,74,0.15); color: var(--amber); }
+
+  .tool-card {
+    padding: 10px 12px; border: 1px solid var(--line-1); border-radius: 8px;
+    background: var(--bg-1); cursor: pointer; transition: all 140ms ease;
+  }
+  .tool-card:hover { border-color: var(--line-3); background: var(--bg-2); }
+  .tool-card.active { border-color: var(--accent); background: var(--accent-softer); }
+
+  .json-out {
+    font-family: var(--font-mono); font-size: 12px; line-height: 1.65;
+    background: #0c0c10; border: 1px solid var(--line-1); border-radius: 8px;
+    padding: 12px; color: var(--text-1); overflow: auto;
+  }
+  .j-key { color: #b8a6ff; }
+  .j-str { color: #8fcfb3; }
+  .j-num { color: #e7b078; }
+  .j-bool { color: #e7a2bc; }
+
+  .hist-row { display: grid; grid-template-columns: 14px 120px 1fr 60px 24px; gap: 10px; align-items: center; padding: 6px 10px; border-radius: 6px; font-size: 12px; }
+  .hist-row:hover { background: var(--bg-2); }
+</style>
+</head>
+<body>
+<div class="min-h-screen flex">
+  <!-- SIDEBAR -->
+  <aside class="w-[260px] shrink-0 flex flex-col border-r" style="background: var(--bg-1); border-color: var(--line-1);">
+    <div class="px-4 pt-4 pb-3 flex items-center gap-2.5">
+      <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, var(--accent), #9b5dff);">
+        <i class="ph-fill ph-rocket-launch text-white text-[15px]"></i>
+      </div>
+      <div class="flex flex-col leading-tight">
+        <span class="text-[13.5px] font-semibold">Vibe Launcher</span>
+        <span class="text-[10.5px] mono" style="color: var(--text-2);">localhost:3000</span>
+      </div>
+    </div>
+    <div class="px-3 pt-2">
+      <div class="label-sm px-2 pb-2">Navigate</div>
+      <nav class="flex flex-col gap-0.5">
+        <div class="nav-item"><i class="ph ph-squares-four text-[15px]"></i><span>Dashboard</span></div>
+        <div class="nav-item"><i class="ph ph-rocket text-[15px]"></i><span>Launcher</span><span class="ml-auto text-[11px]" style="color: var(--text-2);">12</span></div>
+        <div class="nav-item active"><i class="ph-fill ph-plugs text-[15px]"></i><span>MCP Servers</span><span class="ml-auto text-[11px]">4</span></div>
+        <div class="nav-item"><i class="ph ph-chat-circle-text text-[15px]"></i><span>Prompts</span><span class="ml-auto text-[11px]" style="color: var(--text-2);">28</span></div>
+        <div class="nav-item"><i class="ph ph-file-text text-[15px]"></i><span>Markdown</span><span class="ml-auto text-[11px]" style="color: var(--text-2);">17</span></div>
+      </nav>
+    </div>
+
+    <!-- Context panel: servers -->
+    <div class="px-3 pt-5 flex-1 flex flex-col min-h-0">
+      <div class="flex items-center justify-between px-2 pb-2">
+        <div class="label-sm">Servers</div>
+        <button class="text-[11px]" style="color: var(--accent-hover);">+ Add</button>
+      </div>
+
+      <div class="flex flex-col gap-1 overflow-y-auto">
+        <div class="srv-row active">
+          <span class="dot dot-green"></span>
+          <div class="flex-1 min-w-0">
+            <div class="text-[12.5px] font-semibold truncate-1">local-rag</div>
+            <div class="text-[10.5px] mono truncate-1" style="color: var(--text-2);">http://localhost:8787</div>
+          </div>
+          <span class="transport t-http">HTTP</span>
+        </div>
+        <div class="srv-row">
+          <span class="dot dot-green"></span>
+          <div class="flex-1 min-w-0">
+            <div class="text-[12.5px] font-semibold truncate-1">github-mcp</div>
+            <div class="text-[10.5px] mono truncate-1" style="color: var(--text-2);">/api/sse · 2m</div>
+          </div>
+          <span class="transport t-sse">SSE</span>
+        </div>
+        <div class="srv-row">
+          <span class="dot dot-green"></span>
+          <div class="flex-1 min-w-0">
+            <div class="text-[12.5px] font-semibold truncate-1">fs-tools</div>
+            <div class="text-[10.5px] mono truncate-1" style="color: var(--text-2);">npx mcp-fs · 4m</div>
+          </div>
+          <span class="transport t-stdio">STDIO</span>
+        </div>
+        <div class="srv-row">
+          <span class="dot dot-red"></span>
+          <div class="flex-1 min-w-0">
+            <div class="text-[12.5px] font-semibold truncate-1" style="color: var(--text-1);">notion-local</div>
+            <div class="text-[10.5px] mono truncate-1" style="color: var(--red);">ECONNREFUSED · retry</div>
+          </div>
+          <span class="transport t-http">HTTP</span>
+        </div>
+        <div class="srv-row">
+          <span class="dot dot-gray"></span>
+          <div class="flex-1 min-w-0">
+            <div class="text-[12.5px] font-semibold truncate-1" style="color: var(--text-1);">postgres-mcp</div>
+            <div class="text-[10.5px] truncate-1" style="color: var(--text-2);">Not yet discovered</div>
+          </div>
+          <span class="transport t-stdio">STDIO</span>
+        </div>
+      </div>
+
+      <div class="mt-5 px-2">
+        <div class="label-sm pb-2">Filter</div>
+        <div class="flex flex-wrap gap-1">
+          <span class="pill pill-sm pill-accent">All</span>
+          <span class="pill pill-sm">Online</span>
+          <span class="pill pill-sm">Errored</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="px-3 pb-3 pt-3 border-t" style="border-color: var(--line-1);">
+      <div class="flex items-center gap-1">
+        <button class="btn btn-ghost btn-icon"><i class="ph ph-moon text-[14px]"></i></button>
+        <button class="btn btn-ghost btn-icon"><i class="ph ph-gear-six text-[14px]"></i></button>
+        <div class="ml-auto flex items-center gap-1.5">
+          <span class="dot dot-green" style="width:6px;height:6px;box-shadow:none;"></span>
+          <span class="text-[10.5px] mono" style="color: var(--text-2);">v0.4.2</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="flex-1 flex flex-col min-w-0">
+    <header class="sticky top-0 z-20 h-14 px-6 flex items-center gap-4 border-b" style="background: rgba(17,18,22,0.72); backdrop-filter: saturate(140%) blur(12px); border-color: var(--line-1);">
+      <div class="flex flex-col leading-tight">
+        <h1 class="text-[15px] font-semibold">MCP · local-rag</h1>
+        <span class="text-[11.5px]" style="color: var(--text-2);"><span class="mono">http://localhost:8787</span> · 7 tools · 3 resources</span>
+      </div>
+      <div class="flex-1 max-w-[520px] mx-auto">
+        <div class="field h-9">
+          <i class="ph ph-magnifying-glass text-[14px]" style="color: var(--text-2);"></i>
+          <input placeholder="Search tools, resources, prompts…" />
+          <span class="kbd">⌘</span><span class="kbd">K</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button class="btn btn-secondary"><i class="ph ph-arrow-clockwise text-[13px]"></i>Re-discover</button>
+        <button class="btn btn-primary"><i class="ph ph-plus text-[13px]"></i>Add Server</button>
+      </div>
+    </header>
+
+    <!-- Split body -->
+    <section class="flex-1 grid grid-cols-2 gap-0" style="min-height: 0;">
+
+      <!-- LEFT: server details + tools -->
+      <div class="p-5 border-r overflow-y-auto" style="border-color: var(--line-1);">
+
+        <!-- Server header card -->
+        <div class="card p-4">
+          <div class="flex items-start gap-3">
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background: var(--accent-soft); color: var(--accent-hover);">
+              <i class="ph-fill ph-plugs-connected text-[20px]"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <h2 class="text-[16px] font-semibold">local-rag</h2>
+                <span class="pill pill-sm" style="background: var(--green-soft); color: var(--green); border-color: rgba(78,201,160,0.22);">
+                  <span class="dot dot-green pulse" style="width:5px;height:5px;"></span>online
+                </span>
+                <span class="transport t-http">HTTP</span>
+              </div>
+              <div class="text-[11.5px] mono mt-1" style="color: var(--text-2);">http://localhost:8787/mcp</div>
+            </div>
+            <div class="flex items-center gap-1">
+              <button class="btn btn-sm btn-secondary"><i class="ph ph-arrow-clockwise text-[12px]"></i>Discover</button>
+              <button class="btn btn-sm btn-ghost btn-icon"><i class="ph ph-pencil-simple text-[13px]"></i></button>
+              <button class="btn btn-sm btn-ghost btn-icon"><i class="ph ph-trash text-[13px]" style="color: var(--red);"></i></button>
+            </div>
+          </div>
+          <div class="mt-3 pt-3 border-t grid grid-cols-4 gap-3 text-[11.5px]" style="border-color: var(--line-1);">
+            <div><div style="color: var(--text-2);">Last check</div><div class="mt-0.5" style="color: var(--text-0);">just now</div></div>
+            <div><div style="color: var(--text-2);">Latency</div><div class="mt-0.5" style="color: var(--text-0);">24ms</div></div>
+            <div><div style="color: var(--text-2);">Timeout</div><div class="mt-0.5" style="color: var(--text-0);">30s</div></div>
+            <div><div style="color: var(--text-2);">Auth</div><div class="mt-0.5" style="color: var(--text-0);">Bearer</div></div>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="mt-4 border-b flex items-center" style="border-color: var(--line-1);">
+          <div class="tab active">Tools <span class="pill pill-sm ml-1">7</span></div>
+          <div class="tab">Resources <span class="pill pill-sm ml-1">3</span></div>
+          <div class="tab">Prompts <span class="pill pill-sm ml-1">2</span></div>
+          <div class="tab">Capabilities</div>
+        </div>
+
+        <!-- Tools list -->
+        <div class="mt-4 flex flex-col gap-2">
+          <div class="tool-card active">
+            <div class="flex items-center gap-2">
+              <i class="ph-fill ph-magnifying-glass text-[13px]" style="color: var(--accent-hover);"></i>
+              <span class="text-[13.5px] font-semibold">search_docs</span>
+              <span class="pill pill-sm" style="margin-left: auto;">3 req · 2 opt</span>
+            </div>
+            <div class="text-[11.5px] mt-1" style="color: var(--text-2);">Semantic search across the indexed documents. Returns top-k matches with scores.</div>
+          </div>
+          <div class="tool-card">
+            <div class="flex items-center gap-2">
+              <i class="ph ph-file-plus text-[13px]" style="color: var(--text-1);"></i>
+              <span class="text-[13.5px] font-semibold">index_document</span>
+              <span class="pill pill-sm" style="margin-left: auto;">2 req · 1 opt</span>
+            </div>
+            <div class="text-[11.5px] mt-1" style="color: var(--text-2);">Add a file or text blob to the vector index.</div>
+          </div>
+          <div class="tool-card">
+            <div class="flex items-center gap-2">
+              <i class="ph ph-list-bullets text-[13px]" style="color: var(--text-1);"></i>
+              <span class="text-[13.5px] font-semibold">list_collections</span>
+              <span class="pill pill-sm" style="margin-left: auto;">0 req</span>
+            </div>
+            <div class="text-[11.5px] mt-1" style="color: var(--text-2);">Enumerate all known collections with document counts.</div>
+          </div>
+          <div class="tool-card">
+            <div class="flex items-center gap-2">
+              <i class="ph ph-trash text-[13px]" style="color: var(--text-1);"></i>
+              <span class="text-[13.5px] font-semibold">delete_document</span>
+              <span class="pill pill-sm" style="margin-left: auto;">1 req</span>
+            </div>
+            <div class="text-[11.5px] mt-1" style="color: var(--text-2);">Remove a document by id from a collection.</div>
+          </div>
+          <div class="tool-card">
+            <div class="flex items-center gap-2">
+              <i class="ph ph-chart-line text-[13px]" style="color: var(--text-1);"></i>
+              <span class="text-[13.5px] font-semibold">similarity</span>
+              <span class="pill pill-sm" style="margin-left: auto;">2 req</span>
+            </div>
+            <div class="text-[11.5px] mt-1" style="color: var(--text-2);">Compute cosine similarity between two text fragments.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: tool tester + history -->
+      <div class="overflow-y-auto flex flex-col">
+
+        <div class="p-5">
+          <div class="flex items-center gap-2">
+            <i class="ph-fill ph-magnifying-glass text-[14px]" style="color: var(--accent-hover);"></i>
+            <h3 class="text-[15px] font-semibold">search_docs</h3>
+            <span class="pill pill-sm">7 params</span>
+            <div class="ml-auto seg">
+              <button class="active"><i class="ph ph-text-aa text-[11px]"></i>Form</button>
+              <button><i class="ph ph-brackets-curly text-[11px]"></i>Raw JSON</button>
+            </div>
+          </div>
+          <p class="text-[12.5px] mt-1.5" style="color: var(--text-1);">Semantic search across the indexed documents. Returns top-k matches with scores and snippet previews.</p>
+
+          <!-- Form -->
+          <div class="mt-4 flex flex-col gap-3">
+            <div>
+              <label class="text-[11.5px] font-medium flex items-center gap-1.5" style="color: var(--text-1);">
+                query <span style="color: var(--red);">*</span>
+                <span class="text-[10.5px] mono" style="color: var(--text-3);">string</span>
+              </label>
+              <div class="field mt-1"><input value="feedback FM wavetable design" /></div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-[11.5px] font-medium flex items-center gap-1.5" style="color: var(--text-1);">
+                  collection <span style="color: var(--red);">*</span>
+                  <span class="text-[10.5px] mono" style="color: var(--text-3);">enum</span>
+                </label>
+                <div class="field mt-1"><select><option>glow-synth-notes</option><option>research</option><option>general</option></select></div>
+              </div>
+              <div>
+                <label class="text-[11.5px] font-medium flex items-center gap-1.5" style="color: var(--text-1);">
+                  top_k <span class="text-[10.5px] mono" style="color: var(--text-3);">number</span>
+                </label>
+                <div class="field mt-1"><input class="mono" value="4" /></div>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-[11.5px] font-medium flex items-center gap-1.5" style="color: var(--text-1);">
+                  rerank <span class="text-[10.5px] mono" style="color: var(--text-3);">boolean</span>
+                </label>
+                <div class="mt-1 flex items-center gap-2">
+                  <button class="w-9 h-5 rounded-full relative" style="background: var(--accent);"><span class="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-white"></span></button>
+                  <span class="text-[12px]" style="color: var(--text-1);">on</span>
+                </div>
+              </div>
+              <div>
+                <label class="text-[11.5px] font-medium flex items-center gap-1.5" style="color: var(--text-1);">
+                  min_score <span class="text-[10.5px] mono" style="color: var(--text-3);">number</span>
+                </label>
+                <div class="field mt-1"><input class="mono" value="0.6" /></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="text-[11.5px] font-medium flex items-center gap-1.5" style="color: var(--text-1);">
+                  filters <span class="text-[10.5px] mono" style="color: var(--text-3);">array&lt;{tag, value}&gt;</span>
+                </label>
+                <button class="text-[11px]" style="color: var(--accent-hover);">+ Add row</button>
+              </div>
+              <div class="flex flex-col gap-1.5">
+                <div class="grid grid-cols-[1fr_1fr_28px] gap-2">
+                  <div class="field h-8"><input class="mono" value="tag" /></div>
+                  <div class="field h-8"><input class="mono" value="audio" /></div>
+                  <button class="btn btn-ghost btn-icon h-8 w-8"><i class="ph ph-x text-[12px]"></i></button>
+                </div>
+                <div class="grid grid-cols-[1fr_1fr_28px] gap-2">
+                  <div class="field h-8"><input class="mono" value="project" /></div>
+                  <div class="field h-8"><input class="mono" value="glow-synth" /></div>
+                  <button class="btn btn-ghost btn-icon h-8 w-8"><i class="ph ph-x text-[12px]"></i></button>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2 pt-1">
+              <button class="btn btn-primary"><i class="ph-fill ph-play text-[12px]"></i>Run tool</button>
+              <button class="btn btn-secondary"><i class="ph ph-copy text-[13px]"></i>Copy as JSON</button>
+              <span class="text-[11px] ml-auto" style="color: var(--text-2);"><span class="kbd">⌘</span><span class="kbd">↵</span> to run</span>
+            </div>
+          </div>
+
+          <!-- Result pane -->
+          <div class="mt-5 card overflow-hidden">
+            <div class="flex items-center border-b" style="border-color: var(--line-1);">
+              <div class="px-4 tab active" style="margin-right: 0;">Output</div>
+              <div class="px-4 tab" style="margin-right: 0;">Raw JSON</div>
+              <div class="px-4 tab" style="margin-right: 0;">Schema check</div>
+              <div class="ml-auto pr-3 flex items-center gap-2 text-[11px]" style="color: var(--green);">
+                <i class="ph-fill ph-check-circle text-[12px]"></i>200 OK · 312ms · 4 matches
+              </div>
+            </div>
+            <div class="p-4">
+              <div class="json-out" style="max-height: 200px;">
+<div><span class="j-key">"matches"</span>: [</div>
+<div>&nbsp;&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="j-key">"id"</span>: <span class="j-str">"notes/fm-primer-2026-03-12"</span>,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="j-key">"score"</span>: <span class="j-num">0.892</span>,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="j-key">"snippet"</span>: <span class="j-str">"Feedback FM becomes stable when the modulator index…"</span></div>
+<div>&nbsp;&nbsp;},</div>
+<div>&nbsp;&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="j-key">"id"</span>: <span class="j-str">"refs/wavetable-interpolation"</span>,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="j-key">"score"</span>: <span class="j-num">0.841</span>,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="j-key">"snippet"</span>: <span class="j-str">"Cubic interpolation preserves harmonic content above…"</span></div>
+<div>&nbsp;&nbsp;}</div>
+<div>]</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- History -->
+        <div class="mt-auto border-t p-3" style="border-color: var(--line-1); background: var(--bg-1);">
+          <div class="flex items-center justify-between px-2 pb-2">
+            <div class="label-sm">Run history</div>
+            <button class="text-[11px]" style="color: var(--text-2);">Clear</button>
+          </div>
+          <div class="flex flex-col">
+            <div class="hist-row">
+              <i class="ph-fill ph-check-circle text-[12px]" style="color: var(--green);"></i>
+              <span class="mono" style="color: var(--text-2);">now · 312ms</span>
+              <span class="truncate-1 mono">{ query: "feedback FM wavetable…", top_k: 4 }</span>
+              <span style="color: var(--green);">4 matches</span>
+              <button class="btn btn-ghost btn-icon h-6 w-6"><i class="ph ph-arrow-clockwise text-[11px]"></i></button>
+            </div>
+            <div class="hist-row">
+              <i class="ph-fill ph-check-circle text-[12px]" style="color: var(--green);"></i>
+              <span class="mono" style="color: var(--text-2);">2m · 288ms</span>
+              <span class="truncate-1 mono">{ query: "cubic vs linear interp…", top_k: 4 }</span>
+              <span style="color: var(--green);">5 matches</span>
+              <button class="btn btn-ghost btn-icon h-6 w-6"><i class="ph ph-arrow-clockwise text-[11px]"></i></button>
+            </div>
+            <div class="hist-row">
+              <i class="ph-fill ph-x-circle text-[12px]" style="color: var(--red);"></i>
+              <span class="mono" style="color: var(--text-2);">8m · 4s</span>
+              <span class="truncate-1 mono" style="color: var(--red);">Error: min_score out of range</span>
+              <span style="color: var(--red);">422</span>
+              <button class="btn btn-ghost btn-icon h-6 w-6"><i class="ph ph-arrow-clockwise text-[11px]"></i></button>
+            </div>
+            <div class="hist-row">
+              <i class="ph-fill ph-check-circle text-[12px]" style="color: var(--green);"></i>
+              <span class="mono" style="color: var(--text-2);">14m · 201ms</span>
+              <span class="truncate-1 mono">{ query: "envelope release…", top_k: 6 }</span>
+              <span style="color: var(--green);">6 matches</span>
+              <button class="btn btn-ghost btn-icon h-6 w-6"><i class="ph ph-arrow-clockwise text-[11px]"></i></button>
+            </div>
+            <div class="hist-row">
+              <i class="ph-fill ph-check-circle text-[12px]" style="color: var(--green);"></i>
+              <span class="mono" style="color: var(--text-2);">22m · 189ms</span>
+              <span class="truncate-1 mono">{ query: "oscillator sync", top_k: 4 }</span>
+              <span style="color: var(--green);">3 matches</span>
+              <button class="btn btn-ghost btn-icon h-6 w-6"><i class="ph ph-arrow-clockwise text-[11px]"></i></button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+</div>
+</body>
+</html>

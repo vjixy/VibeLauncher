@@ -1,0 +1,231 @@
+<!-- Screen 5: Project modal (create/edit) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Vibe Launcher — Project Modal</title>
+<meta name="viewport" content="width=1440, initial-scale=1" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/tokens.css">
+<style>
+  .backdrop { background: rgba(0,0,0,0.55); backdrop-filter: blur(4px); }
+  .modal {
+    width: 900px; max-height: 88vh;
+    background: var(--bg-1);
+    border: 1px solid var(--line-2);
+    border-radius: 14px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.55);
+    display: flex; flex-direction: column;
+  }
+  .label { font-size: 11.5px; font-weight: 500; color: var(--text-1); margin-bottom: 6px; display: block; }
+  .field-tall { height: auto; padding: 8px 10px; align-items: stretch; }
+  textarea.raw { background: transparent; border: 0; outline: 0; color: var(--text-0); font: inherit; width: 100%; resize: vertical; min-height: 60px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    height: 24px; padding: 0 4px 0 10px;
+    background: var(--accent-soft); color: var(--accent-hover);
+    border: 1px solid rgba(111,112,255,0.25);
+    border-radius: 999px; font-size: 11.5px; font-weight: 500;
+  }
+  .chip button { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 999px; color: var(--accent-hover); }
+  .chip button:hover { background: rgba(111,112,255,0.2); }
+  .cmd-row {
+    display: grid; grid-template-columns: 120px 1fr 120px 28px;
+    gap: 8px; align-items: center;
+  }
+  .radio-tile {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px; border: 1px solid var(--line-2);
+    border-radius: 8px; cursor: pointer;
+    background: var(--bg-2); font-size: 12.5px;
+  }
+  .radio-tile.active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-hover); }
+  .radio-tile .dot-r { width: 12px; height: 12px; border-radius: 999px; border: 1.5px solid var(--line-3); flex: none; position: relative; }
+  .radio-tile.active .dot-r { border-color: var(--accent); }
+  .radio-tile.active .dot-r::after { content: ''; position: absolute; inset: 2.5px; border-radius: 999px; background: var(--accent); }
+</style>
+</head>
+<body>
+<!-- Faded chrome behind -->
+<div class="min-h-screen flex" style="opacity: 0.25;">
+  <aside class="w-[260px] shrink-0 border-r" style="background: var(--bg-1); border-color: var(--line-1);"></aside>
+  <main class="flex-1" style="background: var(--bg-0);"></main>
+</div>
+
+<div class="fixed inset-0 backdrop z-40 flex items-center justify-center p-6">
+  <div class="modal fade-rise">
+
+    <!-- Header -->
+    <div class="px-6 py-4 border-b flex items-center justify-between" style="border-color: var(--line-1);">
+      <div class="flex items-center gap-3">
+        <div class="logo-tile w-9 h-9" style="background: linear-gradient(135deg, #2d1f4f, #1a1030); color: #b8a6ff;">GS</div>
+        <div>
+          <h2 class="text-[16px] font-semibold">Edit project</h2>
+          <div class="text-[11.5px]" style="color: var(--text-2);">Changes save to <span class="mono">projects.json</span> on disk</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="pill pill-sm"><i class="ph ph-circle-half text-[11px]"></i>Unsaved</span>
+        <button class="btn btn-ghost btn-icon"><i class="ph ph-x text-[14px]"></i></button>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="flex-1 overflow-y-auto">
+      <div class="grid grid-cols-2 gap-6 p-6">
+
+        <!-- LEFT COLUMN -->
+        <div class="flex flex-col gap-4">
+          <div>
+            <label class="label">Name</label>
+            <div class="field"><input value="glow-synth" /></div>
+          </div>
+
+          <div>
+            <label class="label">Path</label>
+            <div class="flex gap-2">
+              <div class="field flex-1"><i class="ph ph-folder-simple text-[13px]" style="color: var(--text-2);"></i><input class="mono" value="C:\Users\alex\code\glow-synth" /></div>
+              <button class="btn btn-secondary"><i class="ph ph-folder-open text-[13px]"></i>Browse</button>
+            </div>
+            <div class="mt-1.5 flex items-center gap-1.5 text-[11px]" style="color: var(--green);">
+              <i class="ph-fill ph-check-circle text-[12px]"></i> Path exists · detected <span class="mono">pnpm</span> workspace
+            </div>
+          </div>
+
+          <div>
+            <label class="label">Logo</label>
+            <div class="flex items-center gap-3">
+              <div class="logo-tile w-12 h-12" style="background: linear-gradient(135deg, #2d1f4f, #1a1030); color: #b8a6ff;">GS</div>
+              <div class="flex-1 flex flex-col gap-1.5">
+                <div class="field h-8"><input placeholder="https:// or /path/to/icon.png" /></div>
+                <div class="flex items-center gap-1.5 text-[11px]" style="color: var(--text-2);">
+                  <button class="btn btn-ghost btn-sm"><i class="ph ph-upload-simple text-[12px]"></i>Upload</button>
+                  <span>or auto-derive from name</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label class="label">IDE command</label>
+            <div class="field">
+              <i class="ph ph-code text-[13px]" style="color: var(--text-2);"></i>
+              <select class="w-full">
+                <option>cursor</option>
+                <option>code</option>
+                <option>windsurf</option>
+                <option>Custom…</option>
+              </select>
+            </div>
+            <div class="mt-1.5 text-[11px] mono" style="color: var(--text-2);">$ cursor "C:\Users\alex\code\glow-synth"</div>
+          </div>
+
+          <div>
+            <label class="label">Notes</label>
+            <div class="field field-tall">
+              <textarea class="raw" placeholder="Pin important context here — it shows up on the card hover.">Polyphonic WebAudio synth. Experimenting with wavetables + feedback FM. Port to Rust/WASM in /engine.</textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div class="flex flex-col gap-4">
+
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="label" style="margin: 0;">Categories</label>
+              <span class="text-[11px]" style="color: var(--text-2);">Type to create new</span>
+            </div>
+            <div class="field field-tall flex-wrap gap-1.5" style="min-height: 42px;">
+              <span class="chip">synth<button><i class="ph ph-x text-[10px]"></i></button></span>
+              <span class="chip">wasm<button><i class="ph ph-x text-[10px]"></i></button></span>
+              <span class="chip">Side projects<button><i class="ph ph-x text-[10px]"></i></button></span>
+              <input class="mono flex-1 min-w-[80px]" placeholder="audio…" style="background: transparent; border:0; outline:0; color: var(--text-0); font-size: 12.5px;" />
+            </div>
+            <div class="mt-1.5 flex items-center gap-1.5 flex-wrap">
+              <span class="text-[11px]" style="color: var(--text-2);">Suggestions:</span>
+              <span class="tag cursor-pointer">+ audio</span>
+              <span class="tag cursor-pointer">+ experimental</span>
+              <span class="tag cursor-pointer">+ music</span>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="label" style="margin: 0;">Commands</label>
+              <button class="text-[11px]" style="color: var(--accent-hover);">+ Add command</button>
+            </div>
+            <div class="flex flex-col gap-2">
+              <!-- Command header -->
+              <div class="cmd-row text-[10.5px] uppercase tracking-wider" style="color: var(--text-2);">
+                <div>Label</div><div>Command</div><div>Type</div><div></div>
+              </div>
+              <div class="cmd-row">
+                <div class="field h-8"><input value="dev" /></div>
+                <div class="field h-8"><input class="mono" value="pnpm run dev --host" /></div>
+                <div class="field h-8"><select><option>run</option><option>build</option><option>test</option><option>custom</option></select></div>
+                <button class="btn btn-ghost btn-icon h-8 w-8"><i class="ph ph-x text-[12px]"></i></button>
+              </div>
+              <div class="cmd-row">
+                <div class="field h-8"><input value="build" /></div>
+                <div class="field h-8"><input class="mono" value="pnpm run build" /></div>
+                <div class="field h-8"><select><option>build</option></select></div>
+                <button class="btn btn-ghost btn-icon h-8 w-8"><i class="ph ph-x text-[12px]"></i></button>
+              </div>
+              <div class="cmd-row">
+                <div class="field h-8"><input value="test" /></div>
+                <div class="field h-8"><input class="mono" value="pnpm vitest run" /></div>
+                <div class="field h-8"><select><option>test</option></select></div>
+                <button class="btn btn-ghost btn-icon h-8 w-8"><i class="ph ph-x text-[12px]"></i></button>
+              </div>
+              <!-- Empty slot -->
+              <button class="cmd-row items-center py-1.5 border border-dashed rounded-md text-left" style="border-color: var(--line-2); color: var(--text-2);">
+                <div class="px-2 text-[11.5px]">+ add another</div>
+                <div></div><div></div><div></div>
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label class="label">Linked prompts</label>
+            <div class="field field-tall flex-wrap gap-1.5" style="min-height: 40px;">
+              <span class="chip" style="background: rgba(90,183,212,0.12); color: var(--cyan); border-color: rgba(90,183,212,0.22);">wavetable design<button><i class="ph ph-x text-[10px]"></i></button></span>
+              <span class="chip" style="background: rgba(90,183,212,0.12); color: var(--cyan); border-color: rgba(90,183,212,0.22);">dsp review<button><i class="ph ph-x text-[10px]"></i></button></span>
+              <input class="flex-1 min-w-[100px]" placeholder="+ attach prompt…" style="background: transparent; border:0; outline:0; color: var(--text-0); font-size: 12.5px;" />
+            </div>
+          </div>
+
+          <div>
+            <label class="label">Linked markdown</label>
+            <div class="field field-tall flex-wrap gap-1.5" style="min-height: 40px;">
+              <span class="chip" style="background: rgba(217,166,74,0.12); color: var(--amber); border-color: rgba(217,166,74,0.22);"><span class="mono">wavetable-notes.md</span><button><i class="ph ph-x text-[10px]"></i></button></span>
+              <span class="chip" style="background: rgba(217,166,74,0.12); color: var(--amber); border-color: rgba(217,166,74,0.22);"><span class="mono">fm-spec.md</span><button><i class="ph ph-x text-[10px]"></i></button></span>
+              <input class="flex-1 min-w-[100px]" placeholder="+ attach markdown…" style="background: transparent; border:0; outline:0; color: var(--text-0); font-size: 12.5px;" />
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="px-6 py-3.5 border-t flex items-center justify-between" style="border-color: var(--line-1); background: var(--bg-1);">
+      <div class="flex items-center gap-2 text-[11.5px]" style="color: var(--text-2);">
+        <i class="ph ph-info text-[13px]"></i>
+        <span>Tip: <span class="kbd">⌘</span><span class="kbd">S</span> to save, <span class="kbd">esc</span> to cancel</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button class="btn btn-destructive"><i class="ph ph-trash text-[12px]"></i>Delete project</button>
+        <div class="w-px h-6" style="background: var(--line-2);"></div>
+        <button class="btn btn-ghost">Cancel</button>
+        <button class="btn btn-primary"><i class="ph ph-floppy-disk text-[13px]"></i>Save changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

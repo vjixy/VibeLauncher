@@ -1,0 +1,159 @@
+<!-- Screen 13: Command palette overlay -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Vibe Launcher — Command Palette</title>
+<meta name="viewport" content="width=1440, initial-scale=1" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/tokens.css">
+<style>
+  .backdrop { background: rgba(0,0,0,0.55); backdrop-filter: blur(6px); }
+  .palette { width: 680px; background: var(--bg-1); border: 1px solid var(--line-2); border-radius: 12px; box-shadow: 0 30px 80px rgba(0,0,0,0.6); overflow: hidden; }
+  .cmd-row { display: flex; align-items: center; gap: 12px; padding: 9px 14px; cursor: pointer; font-size: 13px; color: var(--text-1); }
+  .cmd-row .ic { width: 22px; height: 22px; border-radius: 5px; display: flex; align-items: center; justify-content: center; flex: none; background: var(--bg-2); color: var(--text-1); }
+  .cmd-row.active { background: var(--accent-soft); color: var(--text-0); }
+  .cmd-row.active .ic { background: var(--accent); color: white; }
+  .cmd-row .sub { color: var(--text-2); font-size: 11.5px; margin-left: 8px; }
+  .cmd-row .kbds { margin-left: auto; display: flex; gap: 3px; }
+  .section { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-2); padding: 8px 14px 4px; font-weight: 500; }
+  mark { background: rgba(111,112,255,0.28); color: var(--accent-hover); border-radius: 2px; padding: 0 1px; }
+</style>
+</head>
+<body>
+<!-- Faded background hint of the app -->
+<div class="min-h-screen flex" style="opacity: 0.35;">
+  <aside class="w-[260px] shrink-0 border-r" style="background: var(--bg-1); border-color: var(--line-1);"></aside>
+  <main class="flex-1 p-6">
+    <div class="grid grid-cols-3 gap-4">
+      <div class="card h-36"></div><div class="card h-36"></div><div class="card h-36"></div>
+      <div class="card h-36"></div><div class="card h-36"></div><div class="card h-36"></div>
+    </div>
+  </main>
+</div>
+
+<!-- Palette -->
+<div class="fixed inset-0 backdrop z-40 flex items-start justify-center pt-28">
+  <div class="palette fade-rise">
+    <!-- input -->
+    <div class="px-4 h-14 flex items-center gap-3 border-b" style="border-color: var(--line-1);">
+      <i class="ph ph-magnifying-glass text-[15px]" style="color: var(--text-2);"></i>
+      <input autofocus placeholder="Search or type a command…" class="flex-1 mono text-[15px]" style="background:transparent;border:0;outline:0;color:var(--text-0);" value="run loc" />
+      <span class="pill pill-sm mono" style="color: var(--text-2);">57 results</span>
+      <button class="btn btn-ghost btn-icon h-7 w-7"><i class="ph ph-x text-[12px]"></i></button>
+    </div>
+
+    <div class="max-h-[460px] overflow-y-auto">
+
+      <div class="section">Best match</div>
+      <div class="cmd-row active">
+        <div class="ic" style="background: var(--accent); color: white;"><i class="ph-fill ph-play text-[11px]"></i></div>
+        <span><mark>Run</mark> <mark>loc</mark>al-rag</span>
+        <span class="sub">project · starts dev server on :8787</span>
+        <div class="kbds"><span class="kbd">↵</span></div>
+      </div>
+
+      <div class="section">Projects</div>
+      <div class="cmd-row">
+        <div class="ic"><i class="ph ph-rocket text-[12px]"></i></div>
+        <span>Open <mark>loc</mark>al-rag</span>
+        <span class="sub">RAG sandbox · npm run dev</span>
+        <div class="kbds"><span class="kbd">⌘</span><span class="kbd">O</span></div>
+      </div>
+      <div class="cmd-row">
+        <div class="ic"><i class="ph ph-folder-open text-[12px]"></i></div>
+        <span>Reveal <mark>loc</mark>al-rag in Finder</span>
+        <span class="sub">~/code/local-rag</span>
+      </div>
+      <div class="cmd-row">
+        <div class="ic"><i class="ph ph-terminal-window text-[12px]"></i></div>
+        <span>Open terminal in <mark>loc</mark>al-rag</span>
+        <span class="sub">shell: zsh</span>
+        <div class="kbds"><span class="kbd">⌘</span><span class="kbd">⇧</span><span class="kbd">T</span></div>
+      </div>
+      <div class="cmd-row">
+        <div class="ic"><i class="ph ph-code text-[12px]"></i></div>
+        <span>Open <mark>loc</mark>al-rag in Cursor</span>
+        <span class="sub">IDE · last opened 14m ago</span>
+      </div>
+
+      <div class="section">MCP</div>
+      <div class="cmd-row">
+        <div class="ic" style="background: rgba(111,112,255,0.18); color: var(--accent-hover);"><i class="ph-fill ph-plugs text-[11px]"></i></div>
+        <span>Connect to MCP: <mark>loc</mark>al-rag</span>
+        <span class="sub">HTTP · http://localhost:8787</span>
+      </div>
+      <div class="cmd-row">
+        <div class="ic"><i class="ph ph-arrow-clockwise text-[12px]"></i></div>
+        <span>Re-discover tools on <mark>loc</mark>al-rag</span>
+        <span class="sub">mcp · 7 tools currently cached</span>
+      </div>
+      <div class="cmd-row">
+        <div class="ic"><i class="ph ph-magnifying-glass text-[12px]"></i></div>
+        <span>Run tool: <mark>loc</mark>al-rag ▸ search_docs</span>
+        <span class="sub">mcp · opens tool tester</span>
+        <div class="kbds"><span class="kbd">⌘</span><span class="kbd">↵</span></div>
+      </div>
+
+      <div class="section">Prompts</div>
+      <div class="cmd-row">
+        <div class="ic" style="background: rgba(90,183,212,0.18); color: var(--cyan);"><i class="ph-fill ph-chat-circle-text text-[11px]"></i></div>
+        <span>Copy prompt: Code review, Windsurf-style</span>
+        <span class="sub">chat · 3 vars</span>
+      </div>
+      <div class="cmd-row">
+        <div class="ic"><i class="ph ph-chat-circle-dots text-[12px]"></i></div>
+        <span>New prompt…</span>
+        <span class="sub">prompts library</span>
+        <div class="kbds"><span class="kbd">⌘</span><span class="kbd">N</span></div>
+      </div>
+
+      <div class="section">Markdown</div>
+      <div class="cmd-row">
+        <div class="ic" style="background: rgba(78,201,160,0.18); color: var(--green);"><i class="ph-fill ph-file-text text-[11px]"></i></div>
+        <span><mark>Loc</mark>al RAG — design sketch</span>
+        <span class="sub">doc · edited 6m ago</span>
+      </div>
+      <div class="cmd-row">
+        <div class="ic"><i class="ph ph-note text-[12px]"></i></div>
+        <span>New markdown doc…</span>
+        <span class="sub">markdown · opens blank editor</span>
+      </div>
+
+      <div class="section">Actions</div>
+      <div class="cmd-row">
+        <div class="ic"><i class="ph ph-moon text-[12px]"></i></div>
+        <span>Toggle theme</span>
+        <span class="sub">settings · dark ⇄ light</span>
+        <div class="kbds"><span class="kbd">⌘</span><span class="kbd">⇧</span><span class="kbd">L</span></div>
+      </div>
+      <div class="cmd-row">
+        <div class="ic"><i class="ph ph-gear-six text-[12px]"></i></div>
+        <span>Open settings</span>
+        <span class="sub">preferences</span>
+        <div class="kbds"><span class="kbd">⌘</span><span class="kbd">,</span></div>
+      </div>
+
+    </div>
+
+    <!-- footer -->
+    <div class="px-4 h-9 flex items-center justify-between border-t text-[11px]" style="border-color: var(--line-1); background: var(--bg-2); color: var(--text-2);">
+      <div class="flex items-center gap-4">
+        <span class="flex items-center gap-1.5"><span class="kbd">↑</span><span class="kbd">↓</span>navigate</span>
+        <span class="flex items-center gap-1.5"><span class="kbd">↵</span>run</span>
+        <span class="flex items-center gap-1.5"><span class="kbd">⌘</span><span class="kbd">↵</span>run in new window</span>
+        <span class="flex items-center gap-1.5"><span class="kbd">esc</span>close</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <i class="ph ph-command text-[11px]"></i>
+        <span class="mono">⌘K</span>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,317 @@
+<!-- Screen 8: Prompts — library grid -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Vibe Launcher — Prompts</title>
+<meta name="viewport" content="width=1440, initial-scale=1" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/tokens.css">
+<style>
+  .pc { position: relative; padding: 16px; display: flex; flex-direction: column; min-height: 180px; }
+  .pc:hover .pc-actions { opacity: 1; }
+  .pc-actions { opacity: 0; transition: opacity 140ms ease; }
+  .fmt-text { background: rgba(111,112,255,0.12); color: var(--accent-hover); border-color: rgba(111,112,255,0.22); }
+  .fmt-chat { background: rgba(90,183,212,0.12); color: var(--cyan); border-color: rgba(90,183,212,0.22); }
+  .star-btn { color: var(--text-3); }
+  .star-btn.on { color: var(--amber); }
+  .ws-row { display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 10px; border-radius: 6px; color: var(--text-1); font-size: 12.5px; font-weight: 500; cursor: pointer; }
+  .ws-row:hover { background: var(--bg-2); color: var(--text-0); }
+  .ws-row.active { background: var(--accent-soft); color: var(--accent-hover); }
+  .ws-row .count { margin-left: auto; font-size: 11px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+  .seg { display: inline-flex; padding: 3px; background: var(--bg-2); border: 1px solid var(--line-1); border-radius: 7px; }
+  .seg button { padding: 3px 10px; border-radius: 4px; color: var(--text-1); font-size: 11.5px; font-weight: 500; }
+  .seg button.active { background: var(--bg-1); color: var(--text-0); }
+</style>
+</head>
+<body>
+<div class="min-h-screen flex">
+  <!-- SIDEBAR -->
+  <aside class="w-[260px] shrink-0 flex flex-col border-r" style="background: var(--bg-1); border-color: var(--line-1);">
+    <div class="px-4 pt-4 pb-3 flex items-center gap-2.5">
+      <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, var(--accent), #9b5dff);">
+        <i class="ph-fill ph-rocket-launch text-white text-[15px]"></i>
+      </div>
+      <div class="flex flex-col leading-tight">
+        <span class="text-[13.5px] font-semibold">Vibe Launcher</span>
+        <span class="text-[10.5px] mono" style="color: var(--text-2);">localhost:3000</span>
+      </div>
+    </div>
+    <div class="px-3 pt-2">
+      <div class="label-sm px-2 pb-2">Navigate</div>
+      <nav class="flex flex-col gap-0.5">
+        <div class="nav-item"><i class="ph ph-squares-four text-[15px]"></i><span>Dashboard</span></div>
+        <div class="nav-item"><i class="ph ph-rocket text-[15px]"></i><span>Launcher</span><span class="ml-auto text-[11px]" style="color: var(--text-2);">12</span></div>
+        <div class="nav-item"><i class="ph ph-plugs text-[15px]"></i><span>MCP Servers</span><span class="ml-auto text-[11px]" style="color: var(--text-2);">4</span></div>
+        <div class="nav-item active"><i class="ph-fill ph-chat-circle-text text-[15px]"></i><span>Prompts</span><span class="ml-auto text-[11px]">28</span></div>
+        <div class="nav-item"><i class="ph ph-file-text text-[15px]"></i><span>Markdown</span><span class="ml-auto text-[11px]" style="color: var(--text-2);">17</span></div>
+      </nav>
+    </div>
+
+    <div class="px-3 pt-5 flex-1 flex flex-col min-h-0">
+      <div class="label-sm px-2 pb-2">Filter</div>
+      <div class="flex flex-col gap-0.5 mb-4">
+        <div class="ws-row active"><i class="ph ph-squares-four text-[13px]"></i><span>All</span><span class="count">28</span></div>
+        <div class="ws-row"><i class="ph-fill ph-star text-[13px]" style="color: var(--amber);"></i><span>Favorites</span><span class="count">8</span></div>
+        <div class="ws-row"><i class="ph ph-clock-counter-clockwise text-[13px]"></i><span>Recent</span><span class="count">12</span></div>
+      </div>
+
+      <div class="label-sm px-2 pb-2">Format</div>
+      <div class="flex flex-col gap-0.5 mb-4">
+        <div class="ws-row"><span class="pill pill-sm fmt-text mono">TEXT</span><span class="count">19</span></div>
+        <div class="ws-row"><span class="pill pill-sm fmt-chat mono">CHAT</span><span class="count">9</span></div>
+      </div>
+
+      <div class="label-sm px-2 pb-2">Tags</div>
+      <div class="flex flex-col gap-0.5 overflow-y-auto">
+        <div class="ws-row"><span class="ws-bar" style="width:3px;height:14px;border-radius:2px;background: var(--accent);"></span><span>refactor</span><span class="count">6</span></div>
+        <div class="ws-row"><span class="ws-bar" style="width:3px;height:14px;border-radius:2px;background: var(--green);"></span><span>plan</span><span class="count">5</span></div>
+        <div class="ws-row"><span class="ws-bar" style="width:3px;height:14px;border-radius:2px;background: var(--amber);"></span><span>review</span><span class="count">4</span></div>
+        <div class="ws-row"><span class="ws-bar" style="width:3px;height:14px;border-radius:2px;background: var(--cyan);"></span><span>debug</span><span class="count">4</span></div>
+        <div class="ws-row"><span class="ws-bar" style="width:3px;height:14px;border-radius:2px;background: #c28bff;"></span><span>writing</span><span class="count">3</span></div>
+        <div class="ws-row"><span class="ws-bar" style="width:3px;height:14px;border-radius:2px;background: #e7a2bc;"></span><span>dsp</span><span class="count">3</span></div>
+        <div class="ws-row"><span class="ws-bar" style="width:3px;height:14px;border-radius:2px;background: var(--text-2);"></span><span>meta</span><span class="count">3</span></div>
+      </div>
+    </div>
+
+    <div class="px-3 pb-3 pt-3 border-t" style="border-color: var(--line-1);">
+      <div class="flex items-center gap-1">
+        <button class="btn btn-ghost btn-icon"><i class="ph ph-moon text-[14px]"></i></button>
+        <button class="btn btn-ghost btn-icon"><i class="ph ph-gear-six text-[14px]"></i></button>
+        <div class="ml-auto flex items-center gap-1.5">
+          <span class="dot dot-green" style="width:6px;height:6px;box-shadow:none;"></span>
+          <span class="text-[10.5px] mono" style="color: var(--text-2);">v0.4.2</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="flex-1 flex flex-col min-w-0">
+    <header class="sticky top-0 z-20 h-14 px-6 flex items-center gap-4 border-b" style="background: rgba(17,18,22,0.72); backdrop-filter: saturate(140%) blur(12px); border-color: var(--line-1);">
+      <div class="flex flex-col leading-tight">
+        <h1 class="text-[15px] font-semibold">Prompts</h1>
+        <span class="text-[11.5px]" style="color: var(--text-2);">28 total · 8 favorited · 19 text · 9 chat</span>
+      </div>
+      <div class="flex-1 max-w-[520px] mx-auto">
+        <div class="field h-9">
+          <i class="ph ph-magnifying-glass text-[14px]" style="color: var(--text-2);"></i>
+          <input placeholder="Search prompts by title, body, or variable…" />
+          <span class="kbd">⌘</span><span class="kbd">K</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="seg"><button class="active"><i class="ph-fill ph-squares-four text-[11px]"></i></button><button><i class="ph ph-list text-[11px]"></i></button></div>
+        <button class="btn btn-primary"><i class="ph ph-plus text-[13px]"></i>New Prompt</button>
+      </div>
+    </header>
+
+    <section class="p-6">
+
+      <!-- Quick pills -->
+      <div class="flex items-center gap-2 mb-5">
+        <span class="pill pill-accent">All tags</span>
+        <span class="pill">refactor</span>
+        <span class="pill">plan</span>
+        <span class="pill">review</span>
+        <span class="pill">+4 more</span>
+        <div class="ml-auto flex items-center gap-2">
+          <span class="text-[11.5px]" style="color: var(--text-2);">Sort</span>
+          <div class="field h-7"><select><option>Last used</option><option>Alphabetical</option><option>Favorites first</option></select></div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-3">
+
+        <!-- Prompt card 1 — favorited chat -->
+        <div class="card card-hover pc">
+          <div class="flex items-start justify-between">
+            <div class="flex items-center gap-2">
+              <span class="pill pill-sm fmt-chat mono">CHAT</span>
+              <span class="pill pill-sm"><i class="ph ph-brackets-curly text-[10px]"></i>3 vars</span>
+            </div>
+            <button class="star-btn on"><i class="ph-fill ph-star text-[14px]"></i></button>
+          </div>
+          <h3 class="text-[14.5px] font-semibold mt-2.5">Code review, Windsurf-style</h3>
+          <p class="truncate-2 text-[12px] mt-1" style="color: var(--text-2);">Multi-turn review: (1) summarize the diff, (2) call out risks in plain language, (3) suggest ≤3 concrete improvements.</p>
+          <div class="mt-auto pt-3 flex items-center justify-between">
+            <div class="flex items-center gap-1">
+              <span class="tag">review</span>
+              <span class="tag">refactor</span>
+            </div>
+            <span class="text-[11px]" style="color: var(--text-2);">used 14m ago</span>
+          </div>
+          <div class="absolute top-2 right-9 pc-actions flex items-center gap-0.5">
+            <button class="btn btn-ghost btn-icon h-7 w-7"><i class="ph ph-copy text-[12px]"></i></button>
+            <button class="btn btn-ghost btn-icon h-7 w-7"><i class="ph ph-copy-simple text-[12px]"></i></button>
+            <button class="btn btn-ghost btn-icon h-7 w-7"><i class="ph ph-pencil-simple text-[12px]"></i></button>
+          </div>
+        </div>
+
+        <!-- Prompt card 2 — text -->
+        <div class="card card-hover pc">
+          <div class="flex items-start justify-between">
+            <div class="flex items-center gap-2">
+              <span class="pill pill-sm fmt-text mono">TEXT</span>
+              <span class="pill pill-sm"><i class="ph ph-brackets-curly text-[10px]"></i>2 vars</span>
+            </div>
+            <button class="star-btn on"><i class="ph-fill ph-star text-[14px]"></i></button>
+          </div>
+          <h3 class="text-[14.5px] font-semibold mt-2.5">API → TypeScript types</h3>
+          <p class="truncate-2 text-[12px] mt-1" style="color: var(--text-2);">Paste a JSON response and get a clean, commented <span class="mono">type</span> with narrow unions where appropriate.</p>
+          <div class="mt-auto pt-3 flex items-center justify-between">
+            <div class="flex items-center gap-1">
+              <span class="tag">refactor</span>
+              <span class="tag">typescript</span>
+            </div>
+            <span class="text-[11px]" style="color: var(--text-2);">2h ago</span>
+          </div>
+        </div>
+
+        <!-- Prompt card 3 — text with lots of vars -->
+        <div class="card card-hover pc">
+          <div class="flex items-start justify-between">
+            <div class="flex items-center gap-2">
+              <span class="pill pill-sm fmt-text mono">TEXT</span>
+              <span class="pill pill-sm"><i class="ph ph-brackets-curly text-[10px]"></i>5 vars</span>
+            </div>
+            <button class="star-btn"><i class="ph ph-star text-[14px]"></i></button>
+          </div>
+          <h3 class="text-[14.5px] font-semibold mt-2.5">Weekly changelog</h3>
+          <p class="truncate-2 text-[12px] mt-1" style="color: var(--text-2);">Turn a list of git commits into a reader-friendly changelog with sections and emoji-free bullets.</p>
+          <div class="mt-auto pt-3 flex items-center justify-between">
+            <div class="flex items-center gap-1">
+              <span class="tag">writing</span>
+              <span class="tag">meta</span>
+            </div>
+            <span class="text-[11px]" style="color: var(--text-2);">yesterday</span>
+          </div>
+        </div>
+
+        <!-- Prompt card 4 — chat, no vars -->
+        <div class="card card-hover pc">
+          <div class="flex items-start justify-between">
+            <div class="flex items-center gap-2">
+              <span class="pill pill-sm fmt-chat mono">CHAT</span>
+            </div>
+            <button class="star-btn on"><i class="ph-fill ph-star text-[14px]"></i></button>
+          </div>
+          <h3 class="text-[14.5px] font-semibold mt-2.5">Pair-program with me</h3>
+          <p class="truncate-2 text-[12px] mt-1" style="color: var(--text-2);">A thoughtful pair: asks one clarifying question before diving in, then proposes two approaches with tradeoffs.</p>
+          <div class="mt-auto pt-3 flex items-center justify-between">
+            <div class="flex items-center gap-1">
+              <span class="tag">plan</span>
+              <span class="tag">meta</span>
+            </div>
+            <span class="text-[11px]" style="color: var(--text-2);">3d ago</span>
+          </div>
+        </div>
+
+        <!-- Prompt card 5 — debug -->
+        <div class="card card-hover pc">
+          <div class="flex items-start justify-between">
+            <div class="flex items-center gap-2">
+              <span class="pill pill-sm fmt-text mono">TEXT</span>
+              <span class="pill pill-sm"><i class="ph ph-brackets-curly text-[10px]"></i>1 var</span>
+            </div>
+            <button class="star-btn"><i class="ph ph-star text-[14px]"></i></button>
+          </div>
+          <h3 class="text-[14.5px] font-semibold mt-2.5">Explain this error</h3>
+          <p class="truncate-2 text-[12px] mt-1" style="color: var(--text-2);">Paste a stack trace — get a plain-English explanation, the most likely cause, and two things to try.</p>
+          <div class="mt-auto pt-3 flex items-center justify-between">
+            <div class="flex items-center gap-1">
+              <span class="tag">debug</span>
+            </div>
+            <span class="text-[11px]" style="color: var(--text-2);">5d ago</span>
+          </div>
+        </div>
+
+        <!-- Prompt card 6 — dsp -->
+        <div class="card card-hover pc">
+          <div class="flex items-start justify-between">
+            <div class="flex items-center gap-2">
+              <span class="pill pill-sm fmt-text mono">TEXT</span>
+              <span class="pill pill-sm"><i class="ph ph-brackets-curly text-[10px]"></i>4 vars</span>
+            </div>
+            <button class="star-btn on"><i class="ph-fill ph-star text-[14px]"></i></button>
+          </div>
+          <h3 class="text-[14.5px] font-semibold mt-2.5">Wavetable design brief</h3>
+          <p class="truncate-2 text-[12px] mt-1" style="color: var(--text-2);">Ask for harmonic targets, aliasing budget, and interpolation preference. Returns a table ready to paste into code.</p>
+          <div class="mt-auto pt-3 flex items-center justify-between">
+            <div class="flex items-center gap-1">
+              <span class="tag">dsp</span>
+              <span class="tag">plan</span>
+            </div>
+            <span class="text-[11px]" style="color: var(--text-2);">1w ago</span>
+          </div>
+        </div>
+
+        <!-- Prompt card 7 — chat -->
+        <div class="card card-hover pc">
+          <div class="flex items-start justify-between">
+            <div class="flex items-center gap-2">
+              <span class="pill pill-sm fmt-chat mono">CHAT</span>
+              <span class="pill pill-sm"><i class="ph ph-brackets-curly text-[10px]"></i>2 vars</span>
+            </div>
+            <button class="star-btn"><i class="ph ph-star text-[14px]"></i></button>
+          </div>
+          <h3 class="text-[14.5px] font-semibold mt-2.5">README starter</h3>
+          <p class="truncate-2 text-[12px] mt-1" style="color: var(--text-2);">Draft a concise README from a project description. Includes install, usage, and a “why” section.</p>
+          <div class="mt-auto pt-3 flex items-center justify-between">
+            <div class="flex items-center gap-1">
+              <span class="tag">writing</span>
+            </div>
+            <span class="text-[11px]" style="color: var(--text-2);">2w ago</span>
+          </div>
+        </div>
+
+        <!-- Prompt card 8 — text -->
+        <div class="card card-hover pc">
+          <div class="flex items-start justify-between">
+            <div class="flex items-center gap-2">
+              <span class="pill pill-sm fmt-text mono">TEXT</span>
+              <span class="pill pill-sm"><i class="ph ph-brackets-curly text-[10px]"></i>3 vars</span>
+            </div>
+            <button class="star-btn"><i class="ph ph-star text-[14px]"></i></button>
+          </div>
+          <h3 class="text-[14.5px] font-semibold mt-2.5">Refactor to hooks</h3>
+          <p class="truncate-2 text-[12px] mt-1" style="color: var(--text-2);">Convert a class component to function + hooks while preserving public API and render behavior.</p>
+          <div class="mt-auto pt-3 flex items-center justify-between">
+            <div class="flex items-center gap-1">
+              <span class="tag">refactor</span>
+              <span class="tag">react</span>
+            </div>
+            <span class="text-[11px]" style="color: var(--text-2);">3w ago</span>
+          </div>
+        </div>
+
+        <!-- Prompt card 9 — chat, favorited -->
+        <div class="card card-hover pc">
+          <div class="flex items-start justify-between">
+            <div class="flex items-center gap-2">
+              <span class="pill pill-sm fmt-chat mono">CHAT</span>
+              <span class="pill pill-sm"><i class="ph ph-brackets-curly text-[10px]"></i>1 var</span>
+            </div>
+            <button class="star-btn on"><i class="ph-fill ph-star text-[14px]"></i></button>
+          </div>
+          <h3 class="text-[14.5px] font-semibold mt-2.5">Rubber duck</h3>
+          <p class="truncate-2 text-[12px] mt-1" style="color: var(--text-2);">I explain my problem; you reflect it back in your own words and ask three pointed questions.</p>
+          <div class="mt-auto pt-3 flex items-center justify-between">
+            <div class="flex items-center gap-1">
+              <span class="tag">plan</span>
+              <span class="tag">meta</span>
+            </div>
+            <span class="text-[11px]" style="color: var(--text-2);">1mo ago</span>
+          </div>
+        </div>
+      </div>
+
+    </section>
+  </main>
+</div>
+</body>
+</html>
