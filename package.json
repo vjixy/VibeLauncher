@@ -8,6 +8,7 @@
   },
   "scripts": {
     "start": "node server.js",
+    "screenshots": "node scripts/screenshot.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -27,5 +28,8 @@
     "archiver": "^7.0.1",
     "cors": "^2.8.6",
     "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^24.41.0"
   }
 }

@@ -1,0 +1,9 @@
+{
+  "theme": "dark",
+  "accent": "indigo",
+  "density": "comfortable",
+  "reduceMotion": false,
+  "showStatusDots": true,
+  "defaultIde": "code",
+  "startupSection": "dashboard"
+}
